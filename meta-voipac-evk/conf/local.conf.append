@@ -1,0 +1,1 @@
+DISTRO_FEATURES:remove = "nfs zeroconf 3g nfc x11 ptest multiarch vulkan pulseaudio sysvinit"
