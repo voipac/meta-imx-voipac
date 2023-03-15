@@ -20,6 +20,7 @@ SRC_URI_append = " \
 	file://0017-Added-mipi-lvds-bridge.patch \
 	file://0018-can-spi-mcp25xxfd-Don-t-retry-when-device-cannot-be-.patch \
 	file://0019-extcon-ptn5150-Don-t-request-vbus-gpio.patch \
+	file://0020-sound-codecs-wm8904-Added-micbias-for-microphone-inp.patch \
 	\
 	file://bluetooth.cfg \
 	file://wifi.cfg \
