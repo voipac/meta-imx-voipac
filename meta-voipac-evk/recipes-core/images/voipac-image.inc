@@ -23,6 +23,7 @@ IMAGE_INSTALL:append = " i2c-tools \
 			coreutils \
 			weston \
 			iperf3 \
+			linux-firmware-iwlwifi-misc \
 "
 
 inherit core-image

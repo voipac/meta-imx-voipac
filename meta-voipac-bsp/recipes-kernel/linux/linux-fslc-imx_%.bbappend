@@ -31,4 +31,5 @@ SRC_URI_append = " \
 	file://nh_lcd.cfg \
 	file://can.cfg \
 	file://usbc.cfg \
+	file://iwlwifi.cfg \
 "
