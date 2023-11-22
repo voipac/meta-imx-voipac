@@ -1,38 +1,42 @@
 SUMMARY = "Wifi/BT Driver for spb228-pcie-uart"
-LICENSE = "GPLv2"
-LIC_FILES_CHKSUM = "file://COPYING;md5=ab04ac0f249af12befccb94447c08b77"
+LICENSE = "GPL-2.0"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0;md5=801f80980d171dd6425610833a22dbe6"
 
 PR                 = "r0"
 FW_PATH            = "nxp"
 TXPOWER_FILEPREFIX = "txpower_"
+MOD_PARAM_FILE	   = "wifi_mod_para.conf"
 
 require config.inc
 inherit module
-#inherit showvars
 
 SRC_URI = "${DRIVERTAR}"
+SRC_URI += "file://blacklist-mwifiex.conf"
 MLAN_INSTALLDIR = "${D}${base_libdir}/modules/${KERNEL_VERSION}/kernel/drivers/net/wireless/mlan"
 
 
-KERNEL_MODULE_PROBECONF += "pcie8997"
-module_conf_pcie8997 = "options pcie8997 fw_name=${FW_PATH}/${FW_FILE} cal_data_cfg=none drv_mode=3 mfg_mode=0 cfg80211_wext=0x0F reg_alpha2=US cntry_txpwr=1"
+KERNEL_MODULE_PROBECONF += "moal"
+module_conf_moal = "options moal mod_para=nxp/${MOD_PARAM_FILE}"
 
 KERNEL_MODULE_PROBECONF += "hci_uart"
 
+S = "${WORKDIR}/${DRIVERNAME}"
 
 FILES_${PN} += "${base_libdir}/firmware/${FW_PATH}/${FW_FILE}"
 FILES_${PN} += "${base_libdir}/firmware/${FW_PATH}/${TXPOWER_FILEPREFIX}*.bin"
+FILES_${PN} += "${base_libdir}/firmware/${FW_PATH}/${MOD_PARAM_FILE}"
+FILES_${PN} += "${sysconfdir}/modprobe.d/blacklist-mwifiex.conf"
 
 do_patch_append() {
-    bb.utils.copyfile(d.getVar('WORKDIR',True)+"/"+d.getVar('P',True)+"/wlan_src/gpl-2.0.txt", d.getVar('WORKDIR',True)+"/"+d.getVar('P',True)+"/COPYING")
+    bb.utils.copyfile(d.getVar('S',True)+"/wlan_src/gpl-2.0.txt", d.getVar('S',True)+"/FwImage/COPYING")
 
     topmake_file = d.getVar('S',True)+"/Makefile"
     topmake      = open(topmake_file, 'w')
     topmake.write('all $(MAKECMDGOALS):\n')
     topmake.write('\tcd wlan_src &&')
-    topmake.write(" $(MAKE) CONFIG_ANDROID_KERNEL=$(CONFIG_ANDROID_KERNEL) ARCH=$(ARCH) KERNELDIR=$(KERNELDIR) CROSS_COMPILE=$(CROSS_COMPILE) $(MAKECMDGOALS) &&")
-    topmake.write(' cd ../muart_src &&')
-    topmake.write(" $(MAKE) CONFIG_ANDROID_KERNEL=$(CONFIG_ANDROID_KERNEL) ARCH=$(ARCH) KERNELDIR=$(KERNELDIR) CROSS_COMPILE=$(CROSS_COMPILE) $(MAKECMDGOALS)\n")
+    topmake.write(" $(MAKE) CONFIG_ANDROID_KERNEL=$(CONFIG_ANDROID_KERNEL) ARCH=$(ARCH) KERNELDIR=$(KERNELDIR) CROSS_COMPILE=$(CROSS_COMPILE) $(MAKECMDGOALS)")
+#    topmake.write(' cd ../muart_src &&')
+#    topmake.write(" $(MAKE) CONFIG_ANDROID_KERNEL=$(CONFIG_ANDROID_KERNEL) ARCH=$(ARCH) KERNELDIR=$(KERNELDIR) CROSS_COMPILE=$(CROSS_COMPILE) $(MAKECMDGOALS)\n")
     topmake.close()
 }
 
@@ -69,11 +73,14 @@ module_do_install() {
 
 do_install_prepend() {
     install -d ${MLAN_INSTALLDIR}
+    install -d ${D}${sysconfdir}/modprobe.d
 }
 
 do_install_append() {
     install -d ${D}${base_libdir}/firmware/${FW_PATH}
-    install -m 755 ${WORKDIR}/${P}/FwImage/${FW_FILE}                                     ${D}${base_libdir}/firmware/${FW_PATH}
-    install -m 755 ${WORKDIR}/${P}/config/${TXPOWER_FILEPREFIX}WW_${ANTENNA_VERSION}.bin  ${D}${base_libdir}/firmware/${FW_PATH}/${TXPOWER_FILEPREFIX}WW.bin
+    install -m 755 ${S}/FwImage/${FW_FILE}					${D}${base_libdir}/firmware/${FW_PATH}
+    install -m 755 ${S}/config/${TXPOWER_FILEPREFIX}WW_${ANTENNA_VERSION}.bin   ${D}${base_libdir}/firmware/${FW_PATH}/${TXPOWER_FILEPREFIX}WW.bin
+    install -m 755 ${S}/wlan_src/mapp/mlanconfig/config/${MOD_PARAM_FILE}	${D}${base_libdir}/firmware/${FW_PATH}
+    install -m 755 ${WORKDIR}/blacklist-mwifiex.conf                            ${D}${sysconfdir}/modprobe.d
 }
 
