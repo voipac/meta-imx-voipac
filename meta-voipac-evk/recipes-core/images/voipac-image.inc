@@ -2,8 +2,6 @@ LICENSE = "CLOSED"
 IMAGE_FEATURES += " ssh-server-dropbear debug-tweaks"
 
 IMAGE_INSTALL:append = " i2c-tools \
-                        linux-firmware-pcie8897 \
-                        linux-firmware-pcie8997 \
                         alsa-utils alsa-tools alsa-lib alsa-plugins \
                         canutils \
                         iproute2 \
@@ -16,13 +14,13 @@ IMAGE_INSTALL:append = " i2c-tools \
 			wpa-supplicant \
 			v4l-utils \
 			yavta \
-			linux-firmware-pcie8897 linux-firmware-pcie8997 \
 			evtest \
 			glmark2 \
 			stress-ng \
 			coreutils \
 			weston \
 			iperf3 \
+			linux-228-pcie-uart \
 "
 
 inherit core-image
