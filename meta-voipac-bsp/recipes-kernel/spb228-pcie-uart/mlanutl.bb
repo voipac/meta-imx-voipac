@@ -13,18 +13,18 @@ SRC_URI = "${DRIVERTAR}"
 
 TARGET_CC_ARCH += "${LDFLAGS}"
 
-FILES_${PN} += "${bindir}/mlanutl"
+FILES:${PN} += "${bindir}/mlanutl"
 
 do_compile () {
         cd wlan_src
         oe_runmake CC="$CC" mapp/mlanutl
 }
 
-do_install_prepend() {
+do_install:prepend() {
     install -d ${D}${bindir}
 }
 
-do_install_append() {
+do_install:append() {
     install -m 755 ${S}/wlan_src/mlanutl				        ${D}${bindir}
 }
 

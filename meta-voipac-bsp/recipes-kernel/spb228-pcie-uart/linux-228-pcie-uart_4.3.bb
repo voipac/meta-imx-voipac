@@ -22,12 +22,12 @@ KERNEL_MODULE_PROBECONF += "hci_uart"
 
 S = "${WORKDIR}/${DRIVERNAME}"
 
-FILES_${PN} += "${base_libdir}/firmware/${FW_PATH}/${FW_FILE}"
-FILES_${PN} += "${base_libdir}/firmware/${FW_PATH}/${TXPOWER_FILEPREFIX}*.bin"
-FILES_${PN} += "${base_libdir}/firmware/${FW_PATH}/${MOD_PARAM_FILE}"
-FILES_${PN} += "${sysconfdir}/modprobe.d/blacklist-mwifiex.conf"
+FILES:${PN} += "${base_libdir}/firmware/${FW_PATH}/${FW_FILE}"
+FILES:${PN} += "${base_libdir}/firmware/${FW_PATH}/${TXPOWER_FILEPREFIX}*.bin"
+FILES:${PN} += "${base_libdir}/firmware/${FW_PATH}/${MOD_PARAM_FILE}"
+FILES:${PN} += "${sysconfdir}/modprobe.d/blacklist-mwifiex.conf"
 
-do_patch_append() {
+do_patch:append() {
     bb.utils.copyfile(d.getVar('S',True)+"/wlan_src/gpl-2.0.txt", d.getVar('S',True)+"/FwImage/COPYING")
 
     topmake_file = d.getVar('S',True)+"/Makefile"
@@ -71,12 +71,12 @@ module_do_install() {
 	install
 }
 
-do_install_prepend() {
+do_install:prepend() {
     install -d ${MLAN_INSTALLDIR}
     install -d ${D}${sysconfdir}/modprobe.d
 }
 
-do_install_append() {
+do_install:append() {
     install -d ${D}${base_libdir}/firmware/${FW_PATH}
     install -m 755 ${S}/FwImage/${FW_FILE}					${D}${base_libdir}/firmware/${FW_PATH}
     install -m 755 ${S}/config/${TXPOWER_FILEPREFIX}WW_${ANTENNA_VERSION}.bin   ${D}${base_libdir}/firmware/${FW_PATH}/${TXPOWER_FILEPREFIX}WW.bin

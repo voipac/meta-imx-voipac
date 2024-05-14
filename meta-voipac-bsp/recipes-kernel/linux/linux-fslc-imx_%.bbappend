@@ -1,6 +1,6 @@
-FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-SRC_URI_append = " \
+SRC_URI:append = " \
 	file://0001-Added-custom-voipac-devicetree.patch \
 	file://0002-ASoC-wm8904-extend-device-tree-support.patch \
 	file://0003-ASoC-wm8904-add-DMIC-support.patch \
