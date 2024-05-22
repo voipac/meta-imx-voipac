@@ -20,7 +20,10 @@ IMAGE_INSTALL:append = " i2c-tools \
 			coreutils \
 			weston \
 			iperf3 \
-			linux-228-pcie-uart \
+			nxp-wlan-sdk \
+			kernel-module-mlan \
+			kernel-module-moal \
+			firmware-nxp-wifi-nxpiw416-sdio \
 "
 
 inherit core-image

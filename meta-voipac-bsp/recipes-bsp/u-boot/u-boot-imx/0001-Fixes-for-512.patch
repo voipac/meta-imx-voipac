@@ -1,0 +1,90 @@
+From f1cc7a02e8c8d3f4b79d727cb9b0078fd7e0c0db Mon Sep 17 00:00:00 2001
+From: Marek Belisko <marek.belisko@open-nandra.com>
+Date: Thu, 16 May 2024 11:21:29 +0200
+Subject: [PATCH] Fixes for 512
+
+Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
+
+%% original patch: 0001-Fixes-for-512.patch
+---
+ arch/arm/dts/imx93-11x11-evk.dts      |  2 +-
+ arch/arm/mach-imx/imx9/native/soc.c   |  8 +++++++-
+ board/freescale/imx93_evk/imx93_evk.c | 20 ++++++++++++++++++++
+ 3 files changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-11x11-evk.dts b/arch/arm/dts/imx93-11x11-evk.dts
+index 936d4de12d..c67652d847 100644
+--- a/arch/arm/dts/imx93-11x11-evk.dts
++++ b/arch/arm/dts/imx93-11x11-evk.dts
+@@ -29,7 +29,7 @@
+ 			compatible = "shared-dma-pool";
+ 			reusable;
+ 			alloc-ranges = <0 0x80000000 0 0x40000000>;
+-			size = <0 0x10000000>;
++			size = <0 0x3200000>;
+ 			linux,cma-default;
+ 		};
+ 	};
+diff --git a/arch/arm/mach-imx/imx9/native/soc.c b/arch/arm/mach-imx/imx9/native/soc.c
+index 3ed92375ff..22021a726c 100644
+--- a/arch/arm/mach-imx/imx9/native/soc.c
++++ b/arch/arm/mach-imx/imx9/native/soc.c
+@@ -380,13 +380,17 @@ __weak int board_phys_sdram_size(phys_size_t *size){
+ 		return -EINVAL;
+ 
+ 	val = readl(REG_DDR_CS0_BNDS);
++	printf("val cs0:0x%x\n", val);
+ 	start = (val >> 16) << 24;
+ 	end   = (val & 0xFFFF);
+ 	end   = end ? end + 1 : 0;
+ 	end   = end << 24;
+-	*size = end - start;
++	*size = 0x20000000;
++
++	printf("size:%d\n", *size);
+ 
+ 	val = readl(REG_DDR_CS1_BNDS);
++	printf("val cs1:0x%x\n", val);
+ 	start = (val >> 16) << 24;
+ 	end   = (val & 0xFFFF);
+ 	end   = end ? end + 1 : 0;
+@@ -791,6 +795,8 @@ static int disable_npu_nodes(void *blob)
+ 		"/reserved-memory/ethosu_region@C0000000"
+ 	};
+ 
++	printf("DISABLE NPU node\n");
++
+ 	return delete_fdt_nodes(blob, nodes_path_npu, ARRAY_SIZE(nodes_path_npu));
+ }
+ 
+diff --git a/board/freescale/imx93_evk/imx93_evk.c b/board/freescale/imx93_evk/imx93_evk.c
+index d0c5d00348..56d62b7877 100644
+--- a/board/freescale/imx93_evk/imx93_evk.c
++++ b/board/freescale/imx93_evk/imx93_evk.c
+@@ -365,3 +365,23 @@ int is_recovery_key_pressing(void)
+ }
+ #endif /*CONFIG_ANDROID_RECOVERY*/
+ #endif /*CONFIG_FSL_FASTBOOT*/
++
++#ifdef CONFIG_OF_BOARD_SETUP
++int ft_board_setup(void *blob, struct bd_info *bd)
++{
++     const int *cell;
++     int offs;
++     uint32_t cma_size;
++     char *cmasize;
++
++     offs = fdt_path_offset(blob, "/reserved-memory/linux,cma");
++     cell = fdt_getprop(blob, offs, "size", NULL);
++     cma_size = fdt32_to_cpu(cell[1]);
++     cmasize = env_get("cma_size");
++     cma_size = env_get_ulong("cma_size", 10, 20 * 1024 * 1024);
++     fdt_setprop_u64(blob, offs, "size", (uint64_t)cma_size);
++
++     return 0;
++}
++#endif
++
+-- 
+2.25.1
+
