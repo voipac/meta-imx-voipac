@@ -6,19 +6,14 @@ IMAGE_INSTALL:append = " i2c-tools \
                         canutils \
                         iproute2 \
                         kernel-modules \
-			packagegroup-fsl-gstreamer1.0-full \
 			packagegroup-core-boot \
 			packagegroup-base \
                 	${CORE_IMAGE_EXTRA_INSTALL} \
 			bluez5 \
 			wpa-supplicant \
-			v4l-utils \
-			yavta \
 			evtest \
-			glmark2 \
 			stress-ng \
 			coreutils \
-			weston \
 			iperf3 \
 			nxp-wlan-sdk \
 			kernel-module-mlan \

@@ -1,0 +1,397 @@
+From 4c0df524fd0b793a1520bcea26e0087543b37c3c Mon Sep 17 00:00:00 2001
+From: Marek Belisko <marek.belisko@open-nandra.com>
+Date: Fri, 24 May 2024 16:43:54 +0200
+Subject: [PATCH] Added support for voipac boards -> still in evk
+
+Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
+---
+ arch/arm/dts/imx93-11x11-evk-u-boot.dtsi |   4 +-
+ arch/arm/dts/imx93-11x11-evk.dts         | 130 +++--------------------
+ arch/arm/mach-imx/imx9/native/soc.c      |   2 +-
+ board/freescale/imx93_evk/imx93_evk.c    | 105 +++++++++++-------
+ 4 files changed, 87 insertions(+), 154 deletions(-)
+
+diff --git a/arch/arm/dts/imx93-11x11-evk-u-boot.dtsi b/arch/arm/dts/imx93-11x11-evk-u-boot.dtsi
+index d85e6d69b4..688f706d7b 100644
+--- a/arch/arm/dts/imx93-11x11-evk-u-boot.dtsi
++++ b/arch/arm/dts/imx93-11x11-evk-u-boot.dtsi
+@@ -146,13 +146,13 @@
+ };
+ 
+ &fec {
+-	phy-reset-gpios = <&pcal6524 16 GPIO_ACTIVE_LOW>;
++	phy-reset-gpios = <&gpioexp 10 GPIO_ACTIVE_LOW>;
+ 	phy-reset-duration = <15>;
+ 	phy-reset-post-delay = <100>;
+ };
+ 
+ &ethphy1 {
+-	reset-gpios = <&pcal6524 15 GPIO_ACTIVE_LOW>;
++	reset-gpios = <&gpioexp 12 GPIO_ACTIVE_LOW>;
+ 	reset-assert-us = <15000>;
+ 	reset-deassert-us = <100000>;
+ };
+diff --git a/arch/arm/dts/imx93-11x11-evk.dts b/arch/arm/dts/imx93-11x11-evk.dts
+index 936d4de12d..559e806a99 100644
+--- a/arch/arm/dts/imx93-11x11-evk.dts
++++ b/arch/arm/dts/imx93-11x11-evk.dts
+@@ -29,20 +29,12 @@
+ 			compatible = "shared-dma-pool";
+ 			reusable;
+ 			alloc-ranges = <0 0x80000000 0 0x40000000>;
+-			size = <0 0x10000000>;
++			size = <0 0x3200000>;
+ 			linux,cma-default;
+ 		};
+ 	};
+ 
+-	reg_can2_stby: regulator-can2-stby {
+-		compatible = "regulator-fixed";
+-		regulator-name = "can2-stby";
+-		regulator-min-microvolt = <3300000>;
+-		regulator-max-microvolt = <3300000>;
+-		gpio = <&adp5585gpio 5 GPIO_ACTIVE_LOW>;
+-		enable-active-low;
+-	};
+-
++	
+ 	reg_usdhc2_vmmc: regulator-usdhc2 {
+ 		compatible = "regulator-fixed";
+ 		pinctrl-names = "default";
+@@ -55,72 +47,12 @@
+ 		enable-active-high;
+ 	};
+ 
+-	reg_vdd_12v: regulator-vdd-12v {
+-		compatible = "regulator-fixed";
+-		regulator-name = "reg_vdd_12v";
+-		regulator-min-microvolt = <12000000>;
+-		regulator-max-microvolt = <12000000>;
+-		gpio = <&pcal6524 14 GPIO_ACTIVE_HIGH>;
+-		enable-active-high;
+-	};
+-
+ 	reg_vref_1v8: regulator-adc-vref {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vref_1v8";
+ 		regulator-min-microvolt = <1800000>;
+ 		regulator-max-microvolt = <1800000>;
+ 	};
+-
+-	usdhc3_pwrseq: usdhc3_pwrseq {
+-		compatible = "mmc-pwrseq-simple";
+-		reset-gpios = <&pcal6524 20 GPIO_ACTIVE_LOW>;
+-	};
+-
+-dsi_host: dsi-host {
+-		compatible = "synopsys,dw-mipi-dsi";
+-		status = "okay";
+-	};
+-
+-	rm67199_panel {
+-		compatible = "raydium,rm67199";
+-		reset-gpio = <&adp5585gpio 6 GPIO_ACTIVE_LOW>;
+-		dsi-lanes = <4>;
+-		video-mode = <2>;	/* 0: burst mode
+-					 * 1: non-burst mode with sync event
+-					 * 2: non-burst mode with sync pulse
+-					 */
+-		width-mm = <68>;
+-		height-mm = <121>;
+-		status = "okay";
+-
+-		port {
+-			panel_in: endpoint {
+-				remote-endpoint = <&dsi_out>;
+-			};
+-		};
+-	};
+-};
+-
+-&dphy {
+-	status = "okay";
+-};
+-
+-&dsi {
+-	status = "okay";
+-
+-	ports {
+-		port@1 {
+-			dsi_to_adv7535: endpoint {
+-				remote-endpoint = <&adv7535_to_dsi>;
+-			};
+-		};
+-
+-		port@2 {
+-			dsi_out: endpoint {
+-				remote-endpoint = <&panel_in>;
+-			};
+-		};
+-	};
+ };
+ 
+ &eqos {
+@@ -179,18 +111,16 @@ dsi_host: dsi-host {
+ 	pinctrl-1 = <&pinctrl_lpi2c1>;
+ 	status = "okay";
+ 
+-	adv7535: hdmi@3d {
+-		compatible = "adi,adv7535";
+-		reg = <0x3d>;
+-		adi,addr-cec = <0x3c>;
+-		adi,dsi-lanes = <4>;
+-		status = "okay";
++        gpioexp: gpioexp@27 {
++                compatible = "nxp,pca9535";
++                reg = <0x27>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pinctrl_pca9535>;
++                gpio-controller;
++                #gpio-cells = <2>;
++		interrupt-parent = <&gpio2>;
++                interrupts = <18 IRQ_TYPE_LEVEL_LOW>;
+ 
+-		port {
+-			adv7535_to_dsi: endpoint {
+-				remote-endpoint = <&dsi_to_adv7535>;
+-			};
+-		};
+ 	};
+ };
+ 
+@@ -206,8 +136,8 @@ dsi_host: dsi-host {
+ 	pmic@25 {
+ 		compatible = "nxp,pca9451a";
+ 		reg = <0x25>;
+-		interrupt-parent = <&pcal6524>;
+-		interrupts = <11 IRQ_TYPE_LEVEL_LOW>;
++		interrupt-parent = <&gpioexp>;
++		interrupts = <4 IRQ_TYPE_LEVEL_LOW>;
+ 
+ 		regulators {
+ 			buck1: BUCK1 {
+@@ -278,25 +208,6 @@ dsi_host: dsi-host {
+ 		};
+ 	};
+ 
+-	pcal6524: gpio@22 {
+-		compatible = "nxp,pcal6524";
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&pinctrl_pcal6524>;
+-		reg = <0x22>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-		interrupt-controller;
+-		#interrupt-cells = <2>;
+-		interrupt-parent = <&gpio3>;
+-		interrupts = <27 IRQ_TYPE_LEVEL_LOW>;
+-	};
+-
+-	adp5585gpio: gpio@34 {
+-		compatible = "adp5585";
+-		reg = <0x34>;
+-		gpio-controller;
+-		#gpio-cells = <2>;
+-	};
+ };
+ 
+ &lpi2c3 {
+@@ -308,19 +219,10 @@ dsi_host: dsi-host {
+ 	pinctrl-1 = <&pinctrl_lpi2c3>;
+ 	status = "okay";
+ 
+-	pcf2131: rtc@53 {
+-		compatible = "nxp,pcf2131";
+-		reg = <0x53>;
+-		interrupt-parent = <&pcal6524>;
+-		interrupts = <1 IRQ_TYPE_LEVEL_LOW>;
+-		status = "okay";
+-	};
+ 
+ 	ptn5110: tcpc@50 {
+ 		compatible = "nxp,ptn5110";
+ 		reg = <0x50>;
+-		interrupt-parent = <&pcal6524>;
+-		interrupts = <1 IRQ_TYPE_EDGE_FALLING>;
+ 		status = "okay";
+ 
+ 		port {
+@@ -346,8 +248,6 @@ dsi_host: dsi-host {
+ 	ptn5110_2: tcpc@51 {
+ 		compatible = "nxp,ptn5110";
+ 		reg = <0x51>;
+-		interrupt-parent = <&pcal6524>;
+-		interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
+ 		status = "okay";
+ 
+ 		port {
+@@ -481,9 +381,9 @@ dsi_host: dsi-host {
+ 		>;
+ 	};
+ 
+-	pinctrl_pcal6524: pcal6524grp {
++	pinctrl_pca9535: pca9535grp {
+ 		fsl,pins = <
+-			MX93_PAD_CCM_CLKO2__GPIO3_IO27			0x31e
++			MX93_PAD_GPIO_IO18__GPIO2_IO18			0x51e
+ 		>;
+ 	};
+ 
+diff --git a/arch/arm/mach-imx/imx9/native/soc.c b/arch/arm/mach-imx/imx9/native/soc.c
+index 3ed92375ff..05ba77ecd9 100644
+--- a/arch/arm/mach-imx/imx9/native/soc.c
++++ b/arch/arm/mach-imx/imx9/native/soc.c
+@@ -1006,7 +1006,7 @@ int ft_system_setup(void *blob, struct bd_info *bd)
+ 		disable_cpu_nodes(blob, 1);
+ 
+ 	if (is_imx9332() || is_imx9331() || is_imx9312() || is_imx9311() || is_imx9302() ||
+-	    is_imx9301())
++	    is_imx9301() || gd->ram_size == SZ_512M)
+ 		disable_npu_nodes(blob);
+ 
+ 	if (is_imx91p0()) {
+diff --git a/board/freescale/imx93_evk/imx93_evk.c b/board/freescale/imx93_evk/imx93_evk.c
+index d0c5d00348..8c00139388 100644
+--- a/board/freescale/imx93_evk/imx93_evk.c
++++ b/board/freescale/imx93_evk/imx93_evk.c
+@@ -278,48 +278,62 @@ static int setup_eqos(void)
+ 	return 0;
+ }
+ 
+-static void board_gpio_init(void)
++static int board_detect(void)
+ {
+-	struct gpio_desc desc;
+-	int ret;
+-
+-	/* Enable EXT1_PWREN for PCIE_3.3V */
+-	ret = dm_gpio_lookup_name("gpio@22_13", &desc);
+-	if (ret)
+-		return;
+-
+-	ret = dm_gpio_request(&desc, "EXT1_PWREN");
+-	if (ret)
+-		return;
+-
+-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
+-	dm_gpio_set_value(&desc, 1);
++	struct udevice *dev;
++	struct udevice *bus;
++	int ret, err;
++	uint8_t valb;
+ 
+-	/* Deassert SD3_nRST */
+-	ret = dm_gpio_lookup_name("gpio@22_12", &desc);
+-	if (ret)
+-		return;
++	ret = uclass_get_device_by_name(UCLASS_I2C, "i2c@44340000", &bus);
++	if (ret < 0) {
++		printf("ret:%d\n", ret);
++		return ret;
++	}
+ 
+-	ret = dm_gpio_request(&desc, "SD3_nRST");
+-	if (ret)
+-		return;
++	err = dm_i2c_probe(bus, 0x27, 0, &dev);
++	if (err || !dev) {
++		printf("Probe errror: %d\n", err);
++		return err;
++	}
+ 
+-	dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
+-	dm_gpio_set_value(&desc, 1);
++	ret = dm_i2c_read(dev, 0x0, &valb, 1);
++	if (ret) {
++		printf("%s dm_i2c_read failed, err %d\n", __func__, ret);
++		return -EIO;
++	}
+ 
+-	if (IS_ENABLED(CONFIG_TARGET_IMX93_14X14_EVK)) {
+-		/* Enable I2C_LS_EN levelshift */
+-		ret = dm_gpio_lookup_name("gpio@20_16", &desc);
+-		if (ret)
+-			return;
++	valb &= 0x0F;
++	
++	for (int j = 0; j < 4; j++) {
++		ret |= BIT(j) & valb;
++	}
+ 
+-		ret = dm_gpio_request(&desc, "I2C_LS_EN");
+-		if (ret)
+-			return;
++	return ret;
++}
+ 
+-		dm_gpio_set_dir_flags(&desc, GPIOD_IS_OUT);
+-		dm_gpio_set_value(&desc, 1);
++int board_phys_sdram_size(phys_size_t *size)
++{
++	int board = 0;
++	if (!size)
++        	return -EINVAL;
++
++	board = board_detect();
++	switch(board) {
++		case 3:
++			*size = SZ_512M;
++			break;
++		case 5:
++			*size = SZ_1G;
++			break;
++		case 7:
++			*size = SZ_2G;
++			break;
++		default:
++			*size = SZ_1G;
+ 	}
++
++	return 0;
+ }
+ 
+ int board_init(void)
+@@ -334,8 +348,6 @@ int board_init(void)
+ 	if (IS_ENABLED(CONFIG_DWC_ETH_QOS))
+ 		setup_eqos();
+ 
+-	board_gpio_init();
+-
+ 	return 0;
+ }
+ 
+@@ -354,6 +366,7 @@ int board_late_init(void)
+ 	env_set("board_name", "11X11_EVK");
+ 	env_set("board_rev", "iMX93");
+ #endif
++
+ 	return 0;
+ }
+ 
+@@ -365,3 +378,23 @@ int is_recovery_key_pressing(void)
+ }
+ #endif /*CONFIG_ANDROID_RECOVERY*/
+ #endif /*CONFIG_FSL_FASTBOOT*/
++
++#ifdef CONFIG_OF_BOARD_SETUP
++int ft_board_setup(void *blob, struct bd_info *bd)
++{
++     const int *cell;
++     int offs;
++     uint32_t cma_size;
++     char *cmasize;
++
++     offs = fdt_path_offset(blob, "/reserved-memory/linux,cma");
++     cell = fdt_getprop(blob, offs, "size", NULL);
++     cma_size = fdt32_to_cpu(cell[1]);
++     cmasize = env_get("cma_size");
++     cma_size = env_get_ulong("cma_size", 10, 20 * 1024 * 1024);
++     fdt_setprop_u64(blob, offs, "size", (uint64_t)cma_size);
++
++     return 0;
++}
++#endif
++
+-- 
+2.34.1
+
