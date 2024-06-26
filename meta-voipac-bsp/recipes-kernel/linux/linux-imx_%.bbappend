@@ -13,4 +13,5 @@ SRC_URI:append = " \
 	file://0010-Make-usb-host-eeprom-rtc-working.patch \
 	file://0011-Added-display-devicetree.patch \
 	file://0012-Enable-both-CAN-interfaces.patch \
+	file://0013-Added-uart2-uart6-support.patch \
 "
