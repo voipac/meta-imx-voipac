@@ -19,11 +19,6 @@
 #
 # Add options for the script
 # Copyright (C) 2013 Freescale Semiconductor, Inc.
-#
-
-if [ "x$0" = "x./setup-environment" ]; then
-	echo >&2 "Error: This script needs to be sourced; run as '. ./setup-environment'"
-fi
 
 CWD=`pwd`
 PROGNAME="setup-environment"
@@ -46,22 +41,40 @@ bitbake on the build directory.
 The second usage is for using an existing build directory. In this case,
 the script prepares the calling shell for running bitbake on the build
 directory <build-dir>. The build directory configuration is unchanged.
+"
+
+    ls sources/*/conf/machine/*.conf > /dev/null 2>&1
+    ls sources/meta-freescale-distro/conf/distro/fslc-*.conf > /dev/null 2>&1
+    ls sources/meta-freescale-distro/conf/distro/fsl-*.conf > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo -e "
+Supported machines: `echo; ls sources/*/conf/machine/*.conf \
+| sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
+
+Supported Freescale's distros: `echo; ls sources/meta-freescale-distro/conf/distro/fslc-*.conf \
+| sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
+`echo; ls sources/meta-freescale-distro/conf/distro/fsl-*.conf \
+| sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
+
+Available Poky's distros: `echo; ls sources/poky/meta-poky/conf/distro/*.conf \
+| sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
 
 Examples:
 
 - To create a new Yocto build directory:
-  $ MACHINE=imx8mq-voipac DISTRO=fslc-xwayland source $PROGNAME build
+  $ MACHINE=imx6qdlsabresd DISTRO=fslc-framebuffer source $PROGNAME build
 
 - To use an existing Yocto build directory:
   $ source $PROGNAME build
 "
+    fi
 }
 
 clean_up()
 {
    unset EULA LIST_MACHINES VALID_MACHINE
    unset CWD TEMPLATES SHORTOPTS LONGOPTS ARGS PROGNAME
-   unset generated_config updated layerdir layers
+   unset generated_config updated
    unset MACHINE SDKMACHINE DISTRO OEROOT
 }
 
@@ -149,37 +162,20 @@ if [ "$build_dir_setup_enabled" = "true" ]; then
     mv conf/local.conf conf/local.conf.sample
 
     # Generate the local.conf based on the Yocto defaults
-    TEMPLATES=$CWD/sources/meta-voipac/meta-voipac-evk/conf 
+    TEMPLATES=$CWD/sources/meta-voipac/meta-voipac-evk/conf
     grep -v '^#\|^$' conf/local.conf.sample > conf/local.conf
     cat >> conf/local.conf <<EOF
 
 DL_DIR ?= "\${BSPDIR}/downloads/"
-ACCEPT_FSL_EULA = "1"
 EOF
-    # Change settings according to the environment
+    # Change settings according environment
     sed -e "s,MACHINE ??=.*,MACHINE ??= '$MACHINE',g" \
         -e "s,SDKMACHINE ??=.*,SDKMACHINE ??= '$SDKMACHINE',g" \
         -e "s,DISTRO ?=.*,DISTRO ?= '$DISTRO',g" \
         -e "s,PACKAGE_CLASSES ?=.*,PACKAGE_CLASSES ?= '$PACKAGE_CLASSES',g" \
         -i conf/local.conf
 
-    cp $TEMPLATES/bblayers.conf conf/
-
-	# Append local.conf snippets from layers included in the build
-	layers=$(cat ${TEMPLATES}/bblayers.conf | grep '${BSPDIR}' | sed "s/\${BSPDIR}\///" | cut -d" " -f3)
-	echo DEBUG $CWD
-
-	echo >> conf/local.conf
-	for layerdir in ${layers}; do
-		if [ -f ${CWD}/${layerdir}/conf/local.conf.append ]; then
-			echo "### BEGIN configuration `basename ${CWD}/${layerdir}`" >> conf/local.conf
-			echo >> conf/local.conf
-			cat ${CWD}/${layerdir}/conf/local.conf.append >> conf/local.conf
-			echo >> conf/local.conf
-			echo "### END configuration `basename ${CWD}/${layerdir}`" >> conf/local.conf
-			echo >> conf/local.conf
-		fi
-	done
+    cp $TEMPLATES/* conf/
 
     for s in $HOME/.oe $HOME/.yocto; do
         if [ -e $s/site.conf ]; then
@@ -214,7 +210,7 @@ else
     # accepts the FSL EULA:
     cat <<EOF
 
-Some BSPs depend on libraries and packages which are covered by Freescale's
+Some BSPs depend on libraries and packages which are covered by NXP's
 End User License Agreement (EULA). To have the right to use these binaries in
 your images, you need to read and accept the following...
 
@@ -245,10 +241,24 @@ fi
 
 cat <<EOF
 
+Welcome to Freescale Community BSP
+
+The Yocto Project has extensive documentation about OE including a
+reference manual which can be found at:
+    http://yoctoproject.org/documentation
+
+For more information about OpenEmbedded see their website:
+    http://www.openembedded.org/
+
 You can now run 'bitbake <target>'
 
 Common targets are:
     voipac-image
+    core-image-minimal
+    meta-toolchain
+    meta-toolchain-sdk
+    adt-installer
+    meta-ide-support
 
 EOF
 
@@ -259,6 +269,7 @@ Your build environment has been configured with:
     MACHINE=$MACHINE
     SDKMACHINE=$SDKMACHINE
     DISTRO=$DISTRO
+    EULA=$EULA
 EOF
 else
     echo "Your configuration files at $1 have not been touched."
