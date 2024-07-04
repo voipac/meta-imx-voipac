@@ -15,4 +15,5 @@ SRC_URI:append = " \
 	file://0012-Enable-both-CAN-interfaces.patch \
 	file://0013-Added-uart2-uart6-support.patch \
 	file://0014-Added-support-for-Bluetooth-port.patch \
+	file://0015-Move-pmic-to-proper-i2c-bus.patch \
 "
