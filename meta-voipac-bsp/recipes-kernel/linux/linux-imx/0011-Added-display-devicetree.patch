@@ -1,4 +1,4 @@
-From 7b2ec49ad73275e9e10c8b7afa814b5f813b323f Mon Sep 17 00:00:00 2001
+From 6856954ea146a5233b91ddc023aab36ce2f170c1 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Mon, 10 Jun 2024 21:56:25 +0200
 Subject: [PATCH] Added display devicetree
@@ -6,8 +6,8 @@ Subject: [PATCH] Added display devicetree
 Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
 ---
  arch/arm64/boot/dts/freescale/Makefile        |   3 +-
- .../imx93-voipac-evk-boe-wxga-lvds-panel.dts  | 102 ++++++++++++++++++
- 2 files changed, 104 insertions(+), 1 deletion(-)
+ .../imx93-voipac-evk-boe-wxga-lvds-panel.dts  | 118 ++++++++++++++++++
+ 2 files changed, 120 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm64/boot/dts/freescale/imx93-voipac-evk-boe-wxga-lvds-panel.dts
 
 diff --git a/arch/arm64/boot/dts/freescale/Makefile b/arch/arm64/boot/dts/freescale/Makefile
@@ -26,10 +26,10 @@ index b436a5f3d2be..f49a0ebd2d3c 100644
  imx93-11x11-evk-pmic-pf0900-root-dtbs := imx93-11x11-evk-root.dtb imx93-11x11-evk-pmic-pf0900.dtbo
 diff --git a/arch/arm64/boot/dts/freescale/imx93-voipac-evk-boe-wxga-lvds-panel.dts b/arch/arm64/boot/dts/freescale/imx93-voipac-evk-boe-wxga-lvds-panel.dts
 new file mode 100644
-index 000000000000..2d4bfbf96bec
+index 000000000000..a5f2c5c7503f
 --- /dev/null
 +++ b/arch/arm64/boot/dts/freescale/imx93-voipac-evk-boe-wxga-lvds-panel.dts
-@@ -0,0 +1,102 @@
+@@ -0,0 +1,118 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright 2022 NXP
@@ -47,7 +47,7 @@ index 000000000000..2d4bfbf96bec
 +                enable-active-high;
 +	};
 +
-+       	lvds_backlight: blvds_backlight {
++	lvds_backlight: blvds_backlight {
 +                compatible = "pwm-backlight";
 +                pwms = <&tpm4 0 5000000 0>;
 +                brightness-levels = <0 100>;
@@ -117,6 +117,23 @@ index 000000000000..2d4bfbf96bec
 +	pinctrl-0 = <&lcd_pwm>;
 +};
 +
++&gpio_xten0 {
++	backlight_on {
++		gpio-hog;
++		gpios = <0 GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "backlight-on";
++	};
++};
++
++&gpio_xten1 {
++	backlight_boost {
++		gpio-hog;
++		gpios = <9 GPIO_ACTIVE_HIGH>;
++		output-high;
++		line-name = "backlight-boost";
++	};
++};
 +
 +&iomuxc {
 +	pinctrl_ctp_int: ctp_int_grp {
@@ -130,7 +147,6 @@ index 000000000000..2d4bfbf96bec
 +			MX93_PAD_GPIO_IO21__TPM4_CH1               0x0000051E
 +		>;
 +	};
-+	
 +};
 -- 
 2.34.1
