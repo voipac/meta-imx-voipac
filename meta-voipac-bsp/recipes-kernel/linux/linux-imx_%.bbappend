@@ -18,4 +18,8 @@ SRC_URI:append = " \
 	file://0015-Move-pmic-to-proper-i2c-bus.patch \
 	file://0016-Fixes-for-audio-card.patch \
 	file://0017-Added-wakeup-button-example.patch \
+	file://0018-Fix-touch-handling.patch \
+	file://0019-Added-camera-support.patch \
+	file://0020-ov5640-Not-fail-when-frequency-is-0.patch \
+	file://0021-sound-codecs-wm8904-Added-micbias-for-microphone-inp.patch \
 "
