@@ -1,4 +1,4 @@
-From e9350dbad95f420abebb59ca7b22938a39d4e211 Mon Sep 17 00:00:00 2001
+From 52ca9fd2ce670065a70c39e3da642adb2e4c5c5b Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Thu, 18 Jul 2024 09:12:40 +0200
 Subject: [PATCH] ov5640: Not fail when frequency is 0

@@ -1,4 +1,4 @@
-From 25aa914ef5cb102e62716f7fdc7450888995e9f0 Mon Sep 17 00:00:00 2001
+From 02a366a3a8672520e204be4d3d6732802a91afe3 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Wed, 10 Jul 2024 21:29:27 +0200
 Subject: [PATCH] Added wakeup button example

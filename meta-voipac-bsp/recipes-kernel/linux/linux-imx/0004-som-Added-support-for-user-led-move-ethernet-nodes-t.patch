@@ -1,4 +1,4 @@
-From ccb73b5ef9104b151865ffe5225636b789bb68f4 Mon Sep 17 00:00:00 2001
+From b3c3d26f90c68cbfde2576b656c2baf031e68a67 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Mon, 3 Jun 2024 21:31:32 +0200
 Subject: [PATCH] som: Added support for user led + move ethernet nodes to SOM

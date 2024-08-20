@@ -1,4 +1,4 @@
-From 76dda31071b482cc7914d6f02207d67ab5c983b8 Mon Sep 17 00:00:00 2001
+From dcce28779464205d2731235b819d09670a01ef6a Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Thu, 18 Jul 2024 09:11:35 +0200
 Subject: [PATCH] Fix touch handling

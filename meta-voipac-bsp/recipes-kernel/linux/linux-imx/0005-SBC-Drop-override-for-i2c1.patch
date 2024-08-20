@@ -1,4 +1,4 @@
-From 367d4a62442eec9729d003048986df24f589a93a Mon Sep 17 00:00:00 2001
+From 5e6637275fa2f8afb5e338c8cc452f86defb16e7 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Mon, 3 Jun 2024 21:32:12 +0200
 Subject: [PATCH] SBC: Drop override for i2c1

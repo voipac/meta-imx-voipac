@@ -1,4 +1,4 @@
-From 471f7d2d551afbe39fdea67b6d9dc2aed6107eda Mon Sep 17 00:00:00 2001
+From fed57ea6d22af2e0b61a09d093d70d7784a290b8 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Mon, 10 Jun 2024 14:34:31 +0200
 Subject: [PATCH] Make usb-host + eeprom + rtc working

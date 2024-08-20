@@ -1,4 +1,4 @@
-From c19178f4e72d2103a1a2b25bd6d12e28c3649c1c Mon Sep 17 00:00:00 2001
+From f3cdfb19c064c595ec1be0a4138fc0f5a30fdcb0 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Thu, 4 Apr 2024 16:42:32 +0200
 Subject: [PATCH] gpio-pca953x: First read sometimes fails, retry

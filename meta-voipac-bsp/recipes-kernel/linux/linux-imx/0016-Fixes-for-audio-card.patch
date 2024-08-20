@@ -1,4 +1,4 @@
-From 1a22b6cb79d5d25eb87e08403029185069aa6be5 Mon Sep 17 00:00:00 2001
+From 45bc33fb51369890d2f7bf844a592e49a705b253 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Wed, 10 Jul 2024 21:29:07 +0200
 Subject: [PATCH] Fixes for audio card
@@ -9,10 +9,10 @@ Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
  1 file changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/sound/soc/fsl/fsl-asoc-card.c b/sound/soc/fsl/fsl-asoc-card.c
-index 2ccd4c42fc9e..bc72e3ab1d44 100644
+index 3cd44f92c596..442976e0e076 100644
 --- a/sound/soc/fsl/fsl-asoc-card.c
 +++ b/sound/soc/fsl/fsl-asoc-card.c
-@@ -44,6 +44,7 @@
+@@ -45,6 +45,7 @@
  enum fsl_asoc_card_type {
  	CARD_CS42888 = 1,
  	CARD_WM8960,
@@ -20,7 +20,7 @@ index 2ccd4c42fc9e..bc72e3ab1d44 100644
  	CARD_WM8962,
  	CARD_SGTL5000,
  	CARD_AC97,
-@@ -314,12 +315,12 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
+@@ -316,12 +317,12 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
  		}
  	}
  
@@ -36,7 +36,7 @@ index 2ccd4c42fc9e..bc72e3ab1d44 100644
  					       params_physical_width(params));
  		if (ret) {
  			dev_err(dev, "failed to set TDM slot for cpu dai\n");
-@@ -345,7 +346,7 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
+@@ -347,7 +348,7 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
  			dev_err(dev, "failed to set SYSCLK: %d\n", ret);
  			return ret;
  		}
@@ -45,7 +45,7 @@ index 2ccd4c42fc9e..bc72e3ab1d44 100644
  
  	return 0;
  
-@@ -426,6 +427,7 @@ static int fsl_asoc_card_startup(struct snd_pcm_substream *substream)
+@@ -428,6 +429,7 @@ static int fsl_asoc_card_startup(struct snd_pcm_substream *substream)
  
  	if ((priv->card_type == CARD_WM8960 ||
  	     priv->card_type == CARD_WM8962 ||
@@ -53,7 +53,7 @@ index 2ccd4c42fc9e..bc72e3ab1d44 100644
  	     priv->card_type == CARD_WM8958)
  	    && !priv->is_codec_master) {
  		support_rates[0] = 8000;
-@@ -871,6 +873,7 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
+@@ -873,6 +875,7 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
  		priv->codec_priv.fll_id = WM8904_CLK_FLL;
  		priv->codec_priv.pll_id = WM8904_FLL_MCLK;
  		priv->dai_fmt |= SND_SOC_DAIFMT_CBM_CFM;

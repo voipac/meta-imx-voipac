@@ -1,4 +1,4 @@
-From c6d30162e028db762ddda09e3115fd7abb6f2cd4 Mon Sep 17 00:00:00 2001
+From f1dc1d13cce8c95c2591b1ead58ade5feddc2ee3 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Fri, 19 Jul 2024 09:24:35 +0200
 Subject: [PATCH] Added dmic support

@@ -1,4 +1,4 @@
-From 244a4b4c8d2e3a49391eeff2a4478a7c1ab2340c Mon Sep 17 00:00:00 2001
+From c88ed006b3570a2ccc3fa6dafa5fbe064e0c7226 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Wed, 26 Jun 2024 20:44:53 +0200
 Subject: [PATCH] Added uart2 + uart6 support

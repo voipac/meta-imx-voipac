@@ -1,4 +1,4 @@
-From 02f1eadcc8a8227a3bc8ee6bb24db3d3c4c052c0 Mon Sep 17 00:00:00 2001
+From 08bc1c6f6121add087f11dcb21b2503ef2e34867 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Wed, 3 Jul 2024 12:26:52 +0200
 Subject: [PATCH] Added support for Bluetooth port

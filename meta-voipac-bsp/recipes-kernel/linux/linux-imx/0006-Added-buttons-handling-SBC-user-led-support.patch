@@ -1,4 +1,4 @@
-From 25137be7935a215e22f0566fde1bd9a52b6b45ba Mon Sep 17 00:00:00 2001
+From 8c1f406fb8a3f7cd8d138c1c172977f782cb0849 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Tue, 4 Jun 2024 09:06:24 +0200
 Subject: [PATCH] Added buttons handling + SBC user led support

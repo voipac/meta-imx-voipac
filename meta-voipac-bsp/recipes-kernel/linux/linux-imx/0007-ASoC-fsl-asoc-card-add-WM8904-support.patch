@@ -1,4 +1,4 @@
-From 846b22708c85d8b23c70be16e7f2a0fb26dc16e8 Mon Sep 17 00:00:00 2001
+From 9f4be99926a29b8b5fbc06c60a5b671cb5d530ab Mon Sep 17 00:00:00 2001
 From: Pierluigi Passaro <pierluigi.p@variscite.com>
 Date: Sat, 31 Aug 2019 01:06:32 +0200
 Subject: [PATCH] ASoC: fsl-asoc-card: add WM8904 support
@@ -11,11 +11,11 @@ so there is no need to set again PLL and SYSCLK and actually there's no
 need at all the set_bias_level function.
 Also, when esai is used, a dedicated snd_soc_dai_set_tdm_slot call is required.
 ---
- sound/soc/fsl/fsl-asoc-card.c | 48 +++++++++++++++++++++++++++++++++++
- 1 file changed, 48 insertions(+)
+ sound/soc/fsl/fsl-asoc-card.c | 47 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 47 insertions(+)
 
 diff --git a/sound/soc/fsl/fsl-asoc-card.c b/sound/soc/fsl/fsl-asoc-card.c
-index e114835f50a2..0db41f9a4706 100644
+index ca67816b5aa1..a2f214a68c17 100644
 --- a/sound/soc/fsl/fsl-asoc-card.c
 +++ b/sound/soc/fsl/fsl-asoc-card.c
 @@ -27,6 +27,7 @@
@@ -25,8 +25,8 @@ index e114835f50a2..0db41f9a4706 100644
 +#include "../codecs/wm8904.h"
  #include "../codecs/tlv320aic31xx.h"
  #include "../codecs/nau8822.h"
- 
-@@ -313,6 +314,39 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
+ #include "../codecs/wm8904.h"
+@@ -315,6 +316,39 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
  		}
  	}
  
@@ -66,7 +66,7 @@ index e114835f50a2..0db41f9a4706 100644
  	return 0;
  
  fail:
-@@ -830,6 +864,19 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
+@@ -832,6 +866,19 @@ static int fsl_asoc_card_probe(struct platform_device *pdev)
  		priv->codec_priv.pll_id = WM8960_SYSCLK_AUTO;
  		priv->dai_fmt |= SND_SOC_DAIFMT_CBP_CFP;
  		priv->card_type = CARD_WM8960;
@@ -86,14 +86,6 @@ index e114835f50a2..0db41f9a4706 100644
  	} else if (of_device_is_compatible(np, "fsl,imx-audio-ac97")) {
  		codec_dai_name = "ac97-hifi";
  		priv->dai_fmt = SND_SOC_DAIFMT_AC97;
-@@ -1130,6 +1177,7 @@ static const struct of_device_id fsl_asoc_card_dt_ids[] = {
- 	{ .compatible = "fsl,imx-audio-si476x", },
- 	{ .compatible = "fsl,imx-audio-wm8958", },
- 	{ .compatible = "fsl,imx-audio-nau8822", },
-+	{ .compatible = "fsl,imx-audio-wm8904", },
- 	{}
- };
- MODULE_DEVICE_TABLE(of, fsl_asoc_card_dt_ids);
 -- 
 2.34.1
 

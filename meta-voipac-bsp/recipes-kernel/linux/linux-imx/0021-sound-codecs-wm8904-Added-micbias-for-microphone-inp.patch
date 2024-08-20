@@ -1,4 +1,4 @@
-From 238a00cd6b0bf282da009f549883e2839bf472ba Mon Sep 17 00:00:00 2001
+From 3e5a1cb00b017ad1cdfd29a080cd06f6a0ab21d7 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Wed, 15 Mar 2023 08:57:38 +0100
 Subject: [PATCH] sound: codecs: wm8904: Added micbias for microphone input

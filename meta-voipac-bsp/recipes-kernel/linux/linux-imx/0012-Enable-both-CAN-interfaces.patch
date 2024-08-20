@@ -1,4 +1,4 @@
-From b32fc5df260bb8a80a490bdafa68283ac61ff800 Mon Sep 17 00:00:00 2001
+From 3d0b29fa27f24b18e2cde48170bf19b30cca522a Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Mon, 10 Jun 2024 21:56:36 +0200
 Subject: [PATCH] Enable both CAN interfaces

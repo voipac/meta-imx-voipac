@@ -1,4 +1,4 @@
-From 7eeea21863a3f6cbd5386b0b362db3242719e5cb Mon Sep 17 00:00:00 2001
+From 271221d4829b07794f3b5b6d8625c96c63daa378 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Thu, 4 Jul 2024 14:36:40 +0200
 Subject: [PATCH] Move pmic to proper i2c bus

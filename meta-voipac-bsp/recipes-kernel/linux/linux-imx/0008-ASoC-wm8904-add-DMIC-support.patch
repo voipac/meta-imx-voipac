@@ -1,4 +1,4 @@
-From 4a94a5543ced022770b46783745d4d24ed66da2b Mon Sep 17 00:00:00 2001
+From 2e11f670b84e5c873fedcb41fcfae69cad3dd300 Mon Sep 17 00:00:00 2001
 From: Pierluigi Passaro <pierluigi.p@variscite.com>
 Date: Tue, 15 Jun 2021 16:12:49 +0200
 Subject: [PATCH] ASoC: wm8904: add DMIC support

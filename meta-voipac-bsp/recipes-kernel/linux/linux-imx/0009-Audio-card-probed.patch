@@ -1,4 +1,4 @@
-From b1c707b3deb918de06d74b2138bee6b3ab2ce27c Mon Sep 17 00:00:00 2001
+From 0ddc5b4edd023c4d69c2ce1e16948f5b8743c1d7 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Tue, 4 Jun 2024 16:06:53 +0200
 Subject: [PATCH] Audio card probed
@@ -48,10 +48,10 @@ index 3a790c2cb3de..6f38001d84e1 100644
  };
  
 diff --git a/sound/soc/fsl/fsl-asoc-card.c b/sound/soc/fsl/fsl-asoc-card.c
-index 0db41f9a4706..2ccd4c42fc9e 100644
+index a2f214a68c17..3cd44f92c596 100644
 --- a/sound/soc/fsl/fsl-asoc-card.c
 +++ b/sound/soc/fsl/fsl-asoc-card.c
-@@ -314,7 +314,7 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
+@@ -316,7 +316,7 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
  		}
  	}
  
@@ -60,7 +60,7 @@ index 0db41f9a4706..2ccd4c42fc9e 100644
  		struct snd_soc_dai *codec_dai = rtd->codec_dai;
  		struct codec_priv *codec_priv = &priv->codec_priv;
  		unsigned int pll_out;
-@@ -345,7 +345,7 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
+@@ -347,7 +347,7 @@ static int fsl_asoc_card_hw_params(struct snd_pcm_substream *substream,
  			dev_err(dev, "failed to set SYSCLK: %d\n", ret);
  			return ret;
  		}

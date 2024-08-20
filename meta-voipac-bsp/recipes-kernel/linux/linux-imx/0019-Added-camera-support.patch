@@ -1,4 +1,4 @@
-From 21674d7b5e3ffaee7f57f5cd5ebd40e4638dd15a Mon Sep 17 00:00:00 2001
+From b306f41aeddc55d3dbec05ff217e03d6115cd54a Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Thu, 18 Jul 2024 09:12:00 +0200
 Subject: [PATCH] Added camera support
