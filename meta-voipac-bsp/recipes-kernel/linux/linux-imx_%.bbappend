@@ -23,4 +23,5 @@ SRC_URI:append = " \
 	file://0020-ov5640-Not-fail-when-frequency-is-0.patch \
 	file://0021-sound-codecs-wm8904-Added-micbias-for-microphone-inp.patch \
 	file://0022-Added-dmic-support.patch \
+	file://0023-6.6.23-fixes.patch \
 "
