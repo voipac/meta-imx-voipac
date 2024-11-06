@@ -24,4 +24,5 @@ SRC_URI:append = " \
 	file://0021-sound-codecs-wm8904-Added-micbias-for-microphone-inp.patch \
 	file://0022-Added-dmic-support.patch \
 	file://0023-6.6.23-fixes.patch \
+	file://0024-Fix-display-pwm.patch \
 "
