@@ -19,6 +19,7 @@ IMAGE_INSTALL:append = " i2c-tools \
 			kernel-module-mlan \
 			kernel-module-moal \
 			firmware-nxp-wifi-nxpiw416-sdio \
+			libgpiod libgpiod-tools \
 "
 
 inherit core-image
