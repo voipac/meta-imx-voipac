@@ -25,6 +25,7 @@ SRC_URI:append = " \
 	file://0022-Added-dmic-support.patch \
 	file://0023-6.6.23-fixes.patch \
 	file://0024-Fix-display-pwm.patch \
+	file://0025-Added-robot-board-pwm-handling.patch \
 	file://voipac.cfg \
 "
 

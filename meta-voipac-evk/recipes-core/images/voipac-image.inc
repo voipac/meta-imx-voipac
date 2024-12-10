@@ -1,5 +1,5 @@
 LICENSE = "CLOSED"
-IMAGE_FEATURES += " ssh-server-dropbear debug-tweaks"
+IMAGE_FEATURES += " ssh-server-dropbear debug-tweaks weston"
 
 IMAGE_INSTALL:append = " i2c-tools \
                         alsa-utils alsa-tools alsa-lib alsa-plugins \
@@ -15,13 +15,16 @@ IMAGE_INSTALL:append = " i2c-tools \
 			stress-ng \
 			coreutils \
 			iperf3 \
-			nxp-wlan-sdk \
-			kernel-module-mlan \
-			kernel-module-moal \
+			nxp-wlan-sdk kernel-module-mlan kernel-module-moal \
 			firmware-nxp-wifi-nxpiw416-sdio \
 			libgpiod libgpiod-tools \
+			imx-smart-kitchen \
+			weston weston-init weston-xwayland \
 "
 
+
+
+#nxp-wlan-sdk kernel-module-mlan kernel-module-moal
 inherit core-image
 
 IMAGE_LINGUAS = " "

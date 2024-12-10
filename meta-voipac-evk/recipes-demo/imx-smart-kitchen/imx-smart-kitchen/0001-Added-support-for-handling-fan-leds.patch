@@ -1,0 +1,79 @@
+From 26af4be678d52873943545dbb227b367dc4f0a17 Mon Sep 17 00:00:00 2001
+From: Marek Belisko <marek.belisko@gmail.com>
+Date: Thu, 5 Dec 2024 17:29:38 +0100
+Subject: [PATCH] Added support for handling fan + leds
+
+Upstream-Status: Inappropriate
+
+Signed-off-by: Marek Belisko <marek.belisko@gmail.com>
+---
+ src/kitchen-item.cpp | 37 ++++++++++++++++++++++++++++++++-----
+ 1 file changed, 32 insertions(+), 5 deletions(-)
+
+diff --git a/src/kitchen-item.cpp b/src/kitchen-item.cpp
+index 9b71621..6a60157 100644
+--- a/src/kitchen-item.cpp
++++ b/src/kitchen-item.cpp
+@@ -3,6 +3,8 @@
+  * SPDX-License-Identifier: BSD-3-Clause
+ */
+ 
++#include <stdlib.h>
++
+ #include "kitchen-item.h"
+ 
+ int KitchenItem::getIndex(unsigned short id)
+@@ -22,13 +24,34 @@ void KitchenItem::execute(int command_id)
+ 	if(index>=0) functions[index]();
+ }
+ 
++static void control_light_gpio(bool enable)
++{
++    if (enable)
++        system("gpioset -t0 -c gpiochip0 23=1");
++    else
++        system("gpioset -t0 -c gpiochip0 23=0");
++
++    printf("Leaving:%s\n", __func__);
++}	
++
++void control_fan_pwm_output(int speed)
++{
++	if (speed == 0)
++		system("echo 0 > /sys/class/backlight/robot_backlight/brightness");
++	else if (speed == 1)
++		system("echo 50 > /sys/class/backlight/robot_backlight/brightness");
++	else
++		system("echo 100 > /sys/class/backlight/robot_backlight/brightness");
++    printf("Leaving:%s\n", __func__);
++}
++
+ void hoodEnter()	{ui_screen_load(UI_SCREEN_HOOD);}
+ void hoodExit()		{ui_screen_load(UI_SCREEN_HOME);}
+-void hoodFanOff()	{ui_hood_set_fan_speed(0);}
+-void hoodFanOn()	{ui_hood_set_fan_speed(1);}
+-void hoodFanHigh()	{ui_hood_set_fan_speed(2);}
+-void hoodLightOff()	{ui_hood_set_light(false);}
+-void hoodLightOn()	{ui_hood_set_light(true);}
++void hoodFanOff()	{ui_hood_set_fan_speed(0);control_fan_pwm_output(0);}
++void hoodFanOn()	{ui_hood_set_fan_speed(1);control_fan_pwm_output(1);}
++void hoodFanHigh()	{ui_hood_set_fan_speed(2);control_fan_pwm_output(2);}
++void hoodLightOff()	{ui_hood_set_light(false); control_light_gpio(false);}
++void hoodLightOn()	{ui_hood_set_light(true); control_light_gpio(true);}
+ 
+ Hood::Hood()
+ {
+@@ -53,6 +76,10 @@ Hood::Hood()
+     command_map[5] = fan_high_cmd;
+     command_map[6] = light_off_cmd;
+     command_map[7] = light_on_cmd;
++
++    // default settings
++    control_light_gpio(1);
++    control_fan_pwm_output(1);
+ };
+ 
+ void airconEnter()			{ui_screen_load(UI_SCREEN_AIRCON);}
+-- 
+2.25.1
+
