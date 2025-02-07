@@ -1,4 +1,4 @@
-From 604a779dea3d4a76c4572dd1318d80daebd2c8b5 Mon Sep 17 00:00:00 2001
+From e537632d5f41837623231a9596e254ec7c753ae5 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Tue, 12 Nov 2024 15:40:04 +0100
 Subject: [PATCH] Use compile time dram size setup
@@ -95,5 +95,5 @@ index 1c2cdeac087..d55401398ac 100644
  	if (!is_voltage_mode(VOLT_LOW_DRIVE))
  		set_arm_core_max_clk();
 -- 
-2.34.1
+2.25.1
 

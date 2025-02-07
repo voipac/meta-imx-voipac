@@ -3,6 +3,8 @@ FILESEXTRAPATHS:append := ":${THISDIR}/${PN}:"
 SRC_URI:append = " \
 	file://0001-Added-voipac-machine.patch \
 	file://0002-Use-compile-time-dram-size-setup.patch \
+	file://0003-Added-support-for-imx91-voipac-evk.patch \
+	file://0004-Wip-Fixes.patch \
 "	
 
 # dram size selection (default u-boot config is 512M)
