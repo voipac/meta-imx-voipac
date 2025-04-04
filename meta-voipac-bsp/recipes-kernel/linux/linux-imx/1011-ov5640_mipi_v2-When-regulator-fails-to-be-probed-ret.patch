@@ -1,0 +1,44 @@
+From 729422a6fa9ce79ffc150c00bedd8c21747d911d Mon Sep 17 00:00:00 2001
+From: Marek Belisko <marek.belisko@open-nandra.com>
+Date: Fri, 10 Dec 2021 12:14:35 +0100
+Subject: [PATCH] ov5640_mipi_v2: When regulator fails to be probed return
+ defer probe
+
+For csi2 camera connection we use fake regulator which controls CSI2_PW pin.
+It can happen that regulator is not yet available when this driver is loaded.
+
+Return defer probe in this case and add handling for return value.
+
+Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
+---
+ drivers/media/platform/mxc/capture/ov5640_mipi_v2.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/mxc/capture/ov5640_mipi_v2.c b/drivers/media/platform/mxc/capture/ov5640_mipi_v2.c
+index 4c5a675fe4f0..1994d39c21f1 100644
+--- a/drivers/media/platform/mxc/capture/ov5640_mipi_v2.c
++++ b/drivers/media/platform/mxc/capture/ov5640_mipi_v2.c
+@@ -581,8 +581,9 @@ static int ov5640_regulator_enable(struct device *dev)
+ 				"%s:io set voltage ok\n", __func__);
+ 		}
+ 	} else {
+-		pr_err("%s: cannot get io voltage error\n", __func__);
++		pr_err("%s: cannot get io voltage error - err:%d\n", __func__, PTR_ERR(io_regulator));
+ 		io_regulator = NULL;
++		return -EPROBE_DEFER;
+ 	}
+ 
+ 	core_regulator = devm_regulator_get(dev, "DVDD");
+@@ -1775,7 +1776,8 @@ static int ov5640_probe(struct i2c_client *client)
+ 	sensor->streamcap.timeperframe.denominator = DEFAULT_FPS;
+ 	sensor->streamcap.timeperframe.numerator = 1;
+ 
+-	ov5640_regulator_enable(&client->dev);
++	if ((retval = ov5640_regulator_enable(&client->dev)) != 0)
++		return retval;
+ 
+ 	mutex_lock(&ov5640_mutex);
+ 	{
+-- 
+2.34.1
+

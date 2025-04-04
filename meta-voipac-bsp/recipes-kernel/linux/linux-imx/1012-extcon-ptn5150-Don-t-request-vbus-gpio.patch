@@ -1,0 +1,35 @@
+From 40dec0b83c6a1e9d0dd67e8a556333335b1b87b7 Mon Sep 17 00:00:00 2001
+From: Marek Belisko <marek.belisko@open-nandra.com>
+Date: Fri, 29 Jul 2022 11:57:53 +0200
+Subject: [PATCH] extcon-ptn5150: Don't request vbus gpio
+
+Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
+---
+ drivers/extcon/extcon-ptn5150.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/extcon/extcon-ptn5150.c b/drivers/extcon/extcon-ptn5150.c
+index 4616da7e5430..6a733d40bf05 100644
+--- a/drivers/extcon/extcon-ptn5150.c
++++ b/drivers/extcon/extcon-ptn5150.c
+@@ -238,7 +238,7 @@ static int ptn5150_i2c_probe(struct i2c_client *i2c)
+ 
+ 	info->dev = &i2c->dev;
+ 	info->i2c = i2c;
+-	info->vbus_gpiod = devm_gpiod_get(&i2c->dev, "vbus", GPIOD_OUT_LOW);
++	/*info->vbus_gpiod = devm_gpiod_get(&i2c->dev, "vbus", GPIOD_OUT_LOW);
+ 	if (IS_ERR(info->vbus_gpiod)) {
+ 		ret = PTR_ERR(info->vbus_gpiod);
+ 		if (ret == -ENOENT) {
+@@ -247,7 +247,7 @@ static int ptn5150_i2c_probe(struct i2c_client *i2c)
+ 		} else {
+ 			return dev_err_probe(dev, ret, "failed to get VBUS GPIO\n");
+ 		}
+-	}
++	}*/
+ 
+ 	mutex_init(&info->mutex);
+ 
+-- 
+2.34.1
+

@@ -31,4 +31,17 @@ SRC_URI:append = " \
 	file://voipac.cfg \
 "
 
+SRC_URI:append:imx8mq-voipac = " \
+	file://audio.cfg
+	file://bluetooth.cfg
+	file://can.cfg
+	file://koe_touch.cfg
+	file://nh_lcd.cfg
+	file://nh_touch.cfg
+	file://rtc.cfg
+	file://usbc.cfg
+	file://wifi.cfg
+"
+
 DELTA_KERNEL_DEFCONFIG = "voipac.cfg"
+DELTA_KERNEL_DEFCONFIG:imx8mq-voipac = "audio.cfg  bluetooth.cfg  can.cfg  koe_touch.cfg  nh_lcd.cfg  nh_touch.cfg  rtc.cfg  usbc.cfg  wifi.cfg"

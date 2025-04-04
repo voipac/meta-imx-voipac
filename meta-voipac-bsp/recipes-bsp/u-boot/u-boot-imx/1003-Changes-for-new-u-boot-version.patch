@@ -1,0 +1,1052 @@
+From 64bbc05720bc455a7f25ddb8d844ec479fcbbe44 Mon Sep 17 00:00:00 2001
+From: Marek Belisko <marek.belisko@open-nandra.com>
+Date: Fri, 28 Mar 2025 09:24:40 +0100
+Subject: [PATCH] Changes for new u-boot-version
+
+Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
+---
+ board/voipac/common                         |   1 +
+ board/voipac/imx8mq_evk/Kconfig             |   4 +-
+ board/voipac/imx8mq_evk/Makefile            |   1 -
+ board/voipac/imx8mq_evk/imx8mq_evk_voipac.c |  66 ++++--
+ board/voipac/imx8mq_evk/mmc.c               |  49 -----
+ board/voipac/imx8mq_evk/spl.c               | 128 +++++++++---
+ configs/imx8mq_evk_voipac_defconfig         | 149 ++++++++++----
+ include/configs/imx8mq_evk_voipac.h         | 214 ++++++--------------
+ 8 files changed, 324 insertions(+), 288 deletions(-)
+ create mode 120000 board/voipac/common
+ delete mode 100644 board/voipac/imx8mq_evk/mmc.c
+
+diff --git a/board/voipac/common b/board/voipac/common
+new file mode 120000
+index 00000000000..fcec88c4b80
+--- /dev/null
++++ b/board/voipac/common
+@@ -0,0 +1 @@
++/home/marek/data/projects/voipac/imx8/github.com.nxp-imx.uboot-imx/board/freescale/common
+\ No newline at end of file
+diff --git a/board/voipac/imx8mq_evk/Kconfig b/board/voipac/imx8mq_evk/Kconfig
+index 6a47fd38a81..ec6a42f6053 100644
+--- a/board/voipac/imx8mq_evk/Kconfig
++++ b/board/voipac/imx8mq_evk/Kconfig
+@@ -9,6 +9,6 @@ config SYS_VENDOR
+ config SYS_CONFIG_NAME
+ 	default "imx8mq_evk_voipac"
+ 
+-source "board/freescale/common/Kconfig"
+-
++config IMX_CONFIG
++        default "arch/arm/mach-imx/imx8m/imximage.cfg"
+ endif
+diff --git a/board/voipac/imx8mq_evk/Makefile b/board/voipac/imx8mq_evk/Makefile
+index 6dac49d65a9..26976fd6cea 100644
+--- a/board/voipac/imx8mq_evk/Makefile
++++ b/board/voipac/imx8mq_evk/Makefile
+@@ -5,7 +5,6 @@
+ #
+ 
+ obj-y += imx8mq_evk_voipac.o
+-obj-y += mmc.o
+ 
+ ifdef CONFIG_SPL_BUILD
+ obj-y += spl.o
+diff --git a/board/voipac/imx8mq_evk/imx8mq_evk_voipac.c b/board/voipac/imx8mq_evk/imx8mq_evk_voipac.c
+index d0856d6792a..a32e21dfc38 100644
+--- a/board/voipac/imx8mq_evk/imx8mq_evk_voipac.c
++++ b/board/voipac/imx8mq_evk/imx8mq_evk_voipac.c
+@@ -1,13 +1,15 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ /*
+- * Copyright 2022 Voipac
++ * Copyright 2018, 2023 NXP
+  */
+ 
+ #include <common.h>
++#include <efi_loader.h>
+ #include <env.h>
+ #include <init.h>
+ #include <malloc.h>
+ #include <errno.h>
++#include <asm/global_data.h>
+ #include <asm/io.h>
+ #include <miiphy.h>
+ #include <netdev.h>
+@@ -21,10 +23,8 @@
+ #include <asm/mach-imx/mxc_i2c.h>
+ #include <asm/arch/clock.h>
+ #include <spl.h>
+-#include <power/pmic.h>
+-#include <power/pfuze100_pmic.h>
++#include <linux/bitops.h>
+ #include "../../freescale/common/tcpc.h"
+-#include "../../freescale/common/pfuze.h"
+ #include <usb.h>
+ #include <dwc3-uboot.h>
+ #include <asm/armv8/mmu.h>
+@@ -44,6 +44,23 @@ static iomux_v3_cfg_t const uart_pads[] = {
+ 	IMX8MQ_PAD_UART1_TXD__UART1_TX | MUX_PAD_CTRL(UART_PAD_CTRL),
+ };
+ 
++#if CONFIG_IS_ENABLED(EFI_HAVE_CAPSULE_SUPPORT)
++struct efi_fw_image fw_images[] = {
++	{
++		.image_type_id = IMX_BOOT_IMAGE_GUID,
++		.fw_name = u"IMX8MQ-EVK-RAW",
++		.image_index = 1,
++	},
++};
++
++struct efi_capsule_update_info update_info = {
++	.dfu_string = "mmc 0=flash-bin raw 0x42 0x2000 mmcpart 1",
++	.num_images = ARRAY_SIZE(fw_images),
++	.images = fw_images,
++};
++
++#endif /* EFI_HAVE_CAPSULE_SUPPORT */
++
+ int board_early_init_f(void)
+ {
+ 	struct wdog_regs *wdog = (struct wdog_regs *)WDOG1_BASE_ADDR;
+@@ -64,7 +81,6 @@ int board_qspi_init(void)
+ 	return 0;
+ }
+ #endif
+-
+ static int ddr_size;
+ extern struct mm_region *mem_map;
+ #define DRAM1_INDEX 5 /* Correspond to the index of DRAM1 of imx8m_mem_map
+@@ -122,15 +138,13 @@ int board_phys_sdram_size(phys_size_t *size)
+ }
+ 
+ /* Get the top of usable RAM */
+-ulong board_get_usable_ram_top(ulong total_size)
++phys_addr_t board_get_usable_ram_top(phys_size_t total_size)
+ {
+ 	if(gd->ram_top > 0x100000000)
+ 		gd->ram_top = 0x100000000;
+ 
+ 	return gd->ram_top;
+ }
+-
+-
+ #ifdef CONFIG_FEC_MXC
+ static int setup_fec(void)
+ {
+@@ -139,21 +153,29 @@ static int setup_fec(void)
+ 
+ 	/* Use 125M anatop REF_CLK1 for ENET1, not from external */
+ 	clrsetbits_le32(&gpr->gpr[1],
+-		IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL_MASK, 0);
++		IOMUXC_GPR_GPR1_GPR_ENET1_TX_CLK_SEL, 0);
+ 	return set_clk_enet(ENET_125MHZ);
+ }
+ 
+ int board_phy_config(struct phy_device *phydev)
+ {
++#ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
++	if (phydev->drv->uid == 0x1cc916) /*RTL8211F*/
++		env_set("board_name", "WEVK");
++#endif
++
++	if (phydev->drv->config)
++		phydev->drv->config(phydev);
++
++#ifndef CONFIG_DM_ETH
+ 	/* enable rgmii rxc skew and phy mode select to RGMII copper */
+ 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x1f);
+ 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x8);
+ 
+ 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x05);
+ 	phy_write(phydev, MDIO_DEVAD_NONE, 0x1e, 0x100);
++#endif
+ 
+-	if (phydev->drv->config)
+-		phydev->drv->config(phydev);
+ 	return 0;
+ }
+ #endif
+@@ -185,9 +207,9 @@ static struct dwc3_device dwc3_device_data = {
+ 	.power_down_scale = 2,
+ };
+ 
+-int usb_gadget_handle_interrupts(void)
++int dm_usb_gadget_handle_interrupts(struct udevice *dev)
+ {
+-	dwc3_uboot_handle_interrupt(0);
++	dwc3_uboot_handle_interrupt(dev);
+ 	return 0;
+ }
+ 
+@@ -331,7 +353,7 @@ int board_init(void)
+ int board_late_init(void)
+ {
+ #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
+-	env_set("board_name", "EVK_VOIPAC");
++	env_set("board_name", "EVK VOIPAC");
+ 	env_set("board_rev", "iMX8MQ");
+ #endif
+ 
+@@ -342,14 +364,6 @@ int board_late_init(void)
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_FSL_FASTBOOT
+-#ifdef CONFIG_ANDROID_RECOVERY
+-int is_recovery_key_pressing(void)
+-{
+-	return 0; /*TODO*/
+-}
+-#endif /*CONFIG_ANDROID_RECOVERY*/
+-#endif /*CONFIG_FSL_FASTBOOT*/
+ 
+ #ifdef CONFIG_ANDROID_SUPPORT
+ bool is_power_key_pressed(void) {
+@@ -357,3 +371,11 @@ bool is_power_key_pressed(void) {
+ }
+ #endif
+ 
++#ifdef CONFIG_FSL_FASTBOOT
++#ifdef CONFIG_ANDROID_RECOVERY
++int is_recovery_key_pressing(void)
++{
++	return 0; /* TODO */
++}
++#endif /* CONFIG_ANDROID_RECOVERY */
++#endif /* CONFIG_FSL_FASTBOOT */
+diff --git a/board/voipac/imx8mq_evk/mmc.c b/board/voipac/imx8mq_evk/mmc.c
+deleted file mode 100644
+index d886808dbac..00000000000
+--- a/board/voipac/imx8mq_evk/mmc.c
++++ /dev/null
+@@ -1,49 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0+ */
+-/*
+- * Copyright (C) 2016 Freescale Semiconductor, Inc.
+- * Copyright 2018 NXP
+- */
+-#include <common.h>
+-#include <asm/arch/sys_proto.h>
+-#include <linux/errno.h>
+-#include <asm/io.h>
+-#include <stdbool.h>
+-#include <mmc.h>
+-
+-static int check_mmc_autodetect(void)
+-{
+-	char *autodetect_str = env_get("mmcautodetect");
+-
+-	if ((autodetect_str != NULL) &&
+-		(strcmp(autodetect_str, "yes") == 0)) {
+-		return 1;
+-	}
+-
+-	return 0;
+-}
+-
+-/* This should be defined for each board */
+-__weak int mmc_map_to_kernel_blk(int dev_no)
+-{
+-	return dev_no;
+-}
+-
+-void board_late_mmc_env_init(void)
+-{
+-	char cmd[32];
+-	char mmcblk[32];
+-	u32 dev_no = mmc_get_env_dev();
+-
+-	if (!check_mmc_autodetect())
+-		return;
+-
+-	env_set_ulong("mmcdev", dev_no);
+-
+-	/* Set mmcblk env */
+-	sprintf(mmcblk, "/dev/mmcblk%dp2 rootwait rw",
+-		mmc_map_to_kernel_blk(dev_no));
+-	env_set("mmcroot", mmcblk);
+-
+-	sprintf(cmd, "mmc dev %d", dev_no);
+-	run_command(cmd, 0);
+-}
+diff --git a/board/voipac/imx8mq_evk/spl.c b/board/voipac/imx8mq_evk/spl.c
+index 06e15d8e81b..303bb82ae23 100644
+--- a/board/voipac/imx8mq_evk/spl.c
++++ b/board/voipac/imx8mq_evk/spl.c
+@@ -1,13 +1,16 @@
+ // SPDX-License-Identifier: GPL-2.0+
+ /*
+- * Copyright 2022 Voipac
++ * Copyright 2018 - 2023 NXP
+  *
+- * SPDX-License-Identifier:	GPL-2.0+
+  */
+ 
+ #include <common.h>
+ #include <cpu_func.h>
+ #include <hang.h>
++#include <image.h>
++#include <init.h>
++#include <log.h>
++#include <asm/global_data.h>
+ #include <asm/io.h>
+ #include <errno.h>
+ #include <asm/io.h>
+@@ -18,14 +21,20 @@
+ #include <asm/mach-imx/iomux-v3.h>
+ #include <asm/mach-imx/gpio.h>
+ #include <asm/mach-imx/mxc_i2c.h>
++#include <asm/sections.h>
+ #include <fsl_esdhc_imx.h>
++#include <fsl_sec.h>
+ #include <mmc.h>
++#include <linux/delay.h>
+ #include <power/pmic.h>
+-#include <power/bd71837.h>
+ #include <spl.h>
++#include "../../freescale/common/pfuze.h"
++#include <asm/arch/imx8mq_sec_def.h>
++#include <asm/arch/imx8m_csu.h>
++#include <asm/arch/imx8m_rdc.h>
++#include <power/bd71837.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+-
+ extern struct dram_timing_info dram_timing_voipac_1g;
+ extern struct dram_timing_info dram_timing_voipac_2g;
+ extern struct dram_timing_info dram_timing_voipac_4g;
+@@ -115,6 +124,8 @@ static void spl_dram_init(void)
+ 	}
+ }
+ 
++
++
+ #define I2C_PAD_CTRL	(PAD_CTL_DSE6 | PAD_CTL_HYS | PAD_CTL_PUE)
+ #define PC MUX_PAD_CTRL(I2C_PAD_CTRL)
+ static struct i2c_pads_info i2c_pad_info1 = {
+@@ -130,6 +141,19 @@ static struct i2c_pads_info i2c_pad_info1 = {
+ 	},
+ };
+ 
++static struct i2c_pads_info i2c_pad_info3 = {
++	.scl = {
++		.i2c_mode = IMX8MQ_PAD_I2C3_SCL__I2C3_SCL | PC,
++		.gpio_mode = IMX8MQ_PAD_I2C3_SCL__GPIO5_IO18| PC,
++		.gp = IMX_GPIO_NR(5, 18),
++	},
++	.sda = {
++		.i2c_mode = IMX8MQ_PAD_I2C3_SDA__I2C3_SDA | PC,
++		.gpio_mode = IMX8MQ_PAD_I2C3_SDA__GPIO5_IO19 | PC,
++		.gp = IMX_GPIO_NR(5, 19),
++	},
++};
++
+ #define USDHC2_CD_GPIO	IMX_GPIO_NR(2, 12)
+ #define USDHC1_PWR_GPIO IMX_GPIO_NR(2, 10)
+ #define USDHC2_PWR_GPIO IMX_GPIO_NR(2, 19)
+@@ -185,7 +209,7 @@ static struct fsl_esdhc_cfg usdhc_cfg[2] = {
+ 	{USDHC2_BASE_ADDR, 0, 4},
+ };
+ 
+-int board_mmc_init(bd_t *bis)
++int board_mmc_init(struct bd_info *bis)
+ {
+ 	int i, ret;
+ 	/*
+@@ -194,7 +218,7 @@ int board_mmc_init(bd_t *bis)
+ 	 * mmc0                    USDHC1
+ 	 * mmc1                    USDHC2
+ 	 */
+-	for (i = 0; i < CONFIG_SYS_FSL_USDHC_NUM; i++) {
++	for (i = 0; i < CFG_SYS_FSL_USDHC_NUM; i++) {
+ 		switch (i) {
+ 		case 0:
+ 			init_clk_usdhc(0);
+@@ -229,7 +253,7 @@ int board_mmc_init(bd_t *bis)
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_POWER
++#if CONFIG_IS_ENABLED(POWER_LEGACY)
+ #define I2C_PMIC	0
+ int power_init_board(void)
+ {
+@@ -245,24 +269,24 @@ int power_init_board(void)
+ 
+ 
+ 	/* decrease RESET key long push time from the default 10s to 10ms */
+-	pmic_reg_write(p, BD71837_PWRONCONFIG1, 0x0);
++	pmic_reg_write(p, BD718XX_PWRONCONFIG1, 0x0);
+ 
+ 	/* unlock the PMIC regs */
+-	pmic_reg_write(p, BD71837_REGLOCK, 0x1);
++	pmic_reg_write(p, BD718XX_REGLOCK, 0x1);
+ 
+ 	/* increase VDD_SOC to typical value 0.85v before first DRAM access */
+-	pmic_reg_write(p, BD71837_BUCK1_VOLT_RUN, 0x19);
++	pmic_reg_write(p, BD718XX_BUCK1_VOLT_RUN, 0x19);
+ 
+ 	/* increase VDD_DRAM to 0.975v for 3Ghz DDR */
+-	pmic_reg_write(p, BD71837_BUCK5_VOLT, 0x83);
++	pmic_reg_write(p, BD718XX_1ST_NODVS_BUCK_VOLT, 0x83);
+ 
+ #ifndef CONFIG_IMX8M_LPDDR4
+ 	/* increase NVCC_DRAM_1V2 to 1.2v for DDR4 */
+-	pmic_reg_write(p, BD71837_BUCK8_VOLT, 0x28);
++	pmic_reg_write(p, BD718XX_4TH_NODVS_BUCK_VOLT, 0x28);
+ #endif
+ 
+ 	/* lock the PMIC regs */
+-	pmic_reg_write(p, BD71837_REGLOCK, 0x11);
++	pmic_reg_write(p, BD718XX_REGLOCK, 0x11);
+ 
+ 	return 0;
+ 
+@@ -271,13 +295,10 @@ int power_init_board(void)
+ 
+ void spl_board_init(void)
+ {
+-#ifndef CONFIG_SPL_USB_SDP_SUPPORT
+-	/* Serial download mode */
+-	if (is_usb_boot()) {
+-		puts("Back to ROM, SDP\n");
+-		restore_boot_params();
++	if (IS_ENABLED(CONFIG_FSL_CAAM)) {
++		if (sec_init())
++			printf("\nsec_init failed!\n");
+ 	}
+-#endif
+ 
+ 	init_usb_clk();
+ 
+@@ -294,6 +315,21 @@ int board_fit_config_name_match(const char *name)
+ }
+ #endif
+ 
++#define GPR_PCIE_VREG_BYPASS	BIT(12)
++static void enable_pcie_vreg(bool enable)
++{
++	struct iomuxc_gpr_base_regs *gpr =
++		(struct iomuxc_gpr_base_regs *)IOMUXC_GPR_BASE_ADDR;
++
++	if (!enable) {
++		setbits_le32(&gpr->gpr[14], GPR_PCIE_VREG_BYPASS);
++		setbits_le32(&gpr->gpr[16], GPR_PCIE_VREG_BYPASS);
++	} else {
++		clrbits_le32(&gpr->gpr[14], GPR_PCIE_VREG_BYPASS);
++		clrbits_le32(&gpr->gpr[16], GPR_PCIE_VREG_BYPASS);
++	}
++}
++
+ void board_init_f(ulong dummy)
+ {
+ 	int ret;
+@@ -301,6 +337,9 @@ void board_init_f(ulong dummy)
+ 	/* Clear the BSS. */
+ 	memset(__bss_start, 0, __bss_end - __bss_start);
+ 
++	/* PCIE_VPH connects to 3.3v on EVK, enable VREG to generate 1.8V to PHY */
++	enable_pcie_vreg(true);
++
+ 	arch_cpu_init();
+ 
+ 	init_uart_clk(0);
+@@ -319,8 +358,8 @@ void board_init_f(ulong dummy)
+ 
+ 	enable_tzc380();
+ 
+-	/* Adjust pmic voltage to 1.0V for 800M */
+ 	setup_i2c(0, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info1);
++	setup_i2c(2, CONFIG_SYS_I2C_SPEED, 0x7f, &i2c_pad_info3);
+ 
+ 	power_init_board();
+ 
+@@ -330,11 +369,52 @@ void board_init_f(ulong dummy)
+ 	board_init_r(NULL, 0);
+ }
+ 
+-int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
++#ifdef CONFIG_ANDROID_SUPPORT
++void spl_board_prepare_for_boot(void)
+ {
+-	puts ("resetting ...\n");
++	uint32_t val;
++	struct imx_csu_cfg csu_cfg[] = {
++		/* peripherals csl setting */
++		CSU_CSLx(CSU_CSL_OCRAM, CSU_SEC_LEVEL_2, LOCKED),
++		CSU_CSLx(CSU_CSL_OCRAM_S, CSU_SEC_LEVEL_2, LOCKED),
++		CSU_CSLx(CSU_CSL_RDC, CSU_SEC_LEVEL_3, LOCKED),
++		CSU_CSLx(CSU_CSL_TZASC, CSU_SEC_LEVEL_4, LOCKED),
++
++		/* SA setting */
++		CSU_SA(CSU_SA_M4, 1, LOCKED),
++		CSU_SA(CSU_SA_SDMA1, 1, LOCKED),
++		CSU_SA(CSU_SA_LCDIF, 1, LOCKED),
++		CSU_SA(CSU_SA_USB, 1, LOCKED),
++		CSU_SA(CSU_SA_PCIE_CTRL, 1, LOCKED),
++		CSU_SA(CSU_SA_VPU_DECODER, 1, LOCKED),
++		CSU_SA(CSU_SA_GPU, 1, LOCKED),
++		CSU_SA(CSU_SA_ENET1, 1, LOCKED),
++		CSU_SA(CSU_SA_USDHC1, 1, LOCKED),
++		CSU_SA(CSU_SA_USDHC2, 1, LOCKED),
++		CSU_SA(CSU_SA_DISPLAY_CONTROLLER, 1, LOCKED),
++		CSU_SA(CSU_SA_HUGO, 1, LOCKED),
++		CSU_SA(CSU_SA_DAP, 1, LOCKED),
++		CSU_SA(CSU_SA_SDMA2, 1, LOCKED),
++#ifdef CONFIG_IMX_TRUSTY_OS
++		CSU_CSLx(CSU_CSL_VPU_SEC, CSU_SEC_LEVEL_5, LOCKED),
++#endif
++		{0}
++	};
+ 
+-	reset_cpu(WDOG1_BASE_ADDR);
++	struct imx_rdc_cfg rdc_cfg[] = {
++		RDC_MDAn(RDC_MDA_DCSS, DID2),
++		{0},
++	};
+ 
+-	return 0;
++	/* csu config */
++	imx_csu_init(csu_cfg);
++
++	/* rdc config */
++	imx_rdc_init(rdc_cfg);
++
++	/* config the ocram memory range for secure access */
++	setbits_le32(IOMUXC_GPR_BASE_ADDR + 0x2c, 0x421);
++	val = readl(IOMUXC_GPR_BASE_ADDR + 0x2c);
++	setbits_le32(IOMUXC_GPR_BASE_ADDR + 0x2c, val | 0x3C3F0000);
+ }
++#endif
+diff --git a/configs/imx8mq_evk_voipac_defconfig b/configs/imx8mq_evk_voipac_defconfig
+index 7f735667f65..ba731a772a4 100644
+--- a/configs/imx8mq_evk_voipac_defconfig
++++ b/configs/imx8mq_evk_voipac_defconfig
+@@ -1,116 +1,181 @@
+ CONFIG_ARM=y
+-CONFIG_SPL_SYS_ICACHE_OFF=y
+-CONFIG_SPL_SYS_DCACHE_OFF=y
+ CONFIG_ARCH_IMX8M=y
+-CONFIG_SYS_TEXT_BASE=0x40200000
+-CONFIG_SPL_GPIO_SUPPORT=y
++CONFIG_TEXT_BASE=0x40200000
++CONFIG_SYS_MALLOC_LEN=0x2000000
++CONFIG_SPL_GPIO=y
+ CONFIG_SPL_LIBCOMMON_SUPPORT=y
+ CONFIG_SPL_LIBGENERIC_SUPPORT=y
++CONFIG_SF_DEFAULT_SPEED=40000000
++CONFIG_SF_DEFAULT_MODE=0
++CONFIG_ENV_SIZE=0x4000
++CONFIG_ENV_OFFSET=0x700000
+ CONFIG_SYS_I2C_MXC_I2C1=y
+ CONFIG_SYS_I2C_MXC_I2C2=y
+ CONFIG_SYS_I2C_MXC_I2C3=y
+-CONFIG_ENV_SIZE=0x1000
+-CONFIG_ENV_OFFSET=0x400000
+ CONFIG_DM_GPIO=y
++CONFIG_DEFAULT_DEVICE_TREE="imx8mq-evk"
++CONFIG_SPL_TEXT_BASE=0x7E1000
++CONFIG_USB_TCPC=y
+ CONFIG_TARGET_IMX8MQ_EVK_VOIPAC=y
+-CONFIG_SPL_MMC_SUPPORT=y
+-CONFIG_SPL_SERIAL_SUPPORT=y
+-CONFIG_SPL_DRIVERS_MISC_SUPPORT=y
++CONFIG_OF_LIBFDT_OVERLAY=y
++CONFIG_DM_RESET=y
++CONFIG_SYS_MONITOR_LEN=524288
++CONFIG_SPL_MMC=y
++CONFIG_SPL_SERIAL=y
++CONFIG_SPL_DRIVERS_MISC=y
++CONFIG_SPL_STACK=0x187ff0
+ CONFIG_SPL=y
+-CONFIG_CSF_SIZE=0x2000
+-CONFIG_SPL_TEXT_BASE=0x7E1000
++CONFIG_IMX_BOOTAUX=y
++CONFIG_SYS_LOAD_ADDR=0x40400000
++CONFIG_SYS_MEMTEST_START=0x40000000
++CONFIG_SYS_MEMTEST_END=0xA0000000
++CONFIG_REMAKE_ELF=y
+ CONFIG_FIT=y
+ CONFIG_FIT_EXTERNAL_OFFSET=0x3000
++CONFIG_FIT_SIGNATURE=y
+ CONFIG_SPL_LOAD_FIT=y
+-CONFIG_SPL_FIT_GENERATOR="arch/arm/mach-imx/mkimage_fit_atf.sh"
+-CONFIG_OF_BOARD_SETUP=y
++CONFIG_LEGACY_IMAGE_FORMAT=y
++CONFIG_DISTRO_DEFAULTS=y
+ CONFIG_OF_SYSTEM_SETUP=y
+-CONFIG_SYS_EXTRA_OPTIONS="IMX_CONFIG=arch/arm/mach-imx/imx8m/imximage.cfg"
+-CONFIG_BOARD_LATE_INIT=y
+-CONFIG_ARCH_MISC_INIT=y
++CONFIG_BOOTCOMMAND="run sr_ir_v2_cmd;run distro_bootcmd;run bsp_bootcmd"
++CONFIG_SYS_PBSIZE=1050
+ CONFIG_BOARD_EARLY_INIT_F=y
++CONFIG_BOARD_LATE_INIT=y
++CONFIG_SPL_MAX_SIZE=0x26000
++CONFIG_SPL_HAS_BSS_LINKER_SECTION=y
++CONFIG_SPL_BSS_START_ADDR=0x180000
++CONFIG_SPL_BSS_MAX_SIZE=0x2000
+ CONFIG_SPL_BOARD_INIT=y
+-CONFIG_SPL_SEPARATE_BSS=y
+-CONFIG_SPL_I2C_SUPPORT=y
+-CONFIG_SPL_POWER_SUPPORT=y
+-CONFIG_SPL_USB_GADGET=y
+-CONFIG_SPL_USB_SDP_SUPPORT=y
+-CONFIG_HUSH_PARSER=y
++# CONFIG_SPL_SHARES_INIT_SP_ADDR is not set
++CONFIG_SPL_SYS_MALLOC=y
++CONFIG_SPL_HAS_CUSTOM_MALLOC_START=y
++CONFIG_SPL_CUSTOM_SYS_MALLOC_ADDR=0x42200000
++CONFIG_SPL_SYS_MALLOC_SIZE=0x80000
++CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR=y
++CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR=0x300
++CONFIG_SPL_I2C=y
++CONFIG_SPL_POWER=y
++CONFIG_SPL_WATCHDOG=y
+ CONFIG_SYS_PROMPT="u-boot=> "
+ # CONFIG_BOOTM_NETBSD is not set
+ # CONFIG_CMD_EXPORTENV is not set
+ # CONFIG_CMD_IMPORTENV is not set
+-# CONFIG_CMD_CRC32 is not set
++CONFIG_CMD_NVEDIT_EFI=y
++CONFIG_CRC32_VERIFY=y
+ CONFIG_CMD_MEMTEST=y
++CONFIG_CMD_CLK=y
++CONFIG_CMD_DFU=y
+ CONFIG_CMD_FUSE=y
+ CONFIG_CMD_GPIO=y
+ CONFIG_CMD_I2C=y
+ CONFIG_CMD_MMC=y
+-CONFIG_CMD_DHCP=y
+-CONFIG_CMD_MII=y
+-CONFIG_CMD_PING=y
++CONFIG_CMD_OPTEE_RPMB=y
++CONFIG_CMD_POWEROFF=y
++CONFIG_CMD_USB=y
++CONFIG_CMD_USB_MASS_STORAGE=y
++CONFIG_CMD_SNTP=y
++CONFIG_CMD_BMP=y
+ CONFIG_CMD_CACHE=y
++CONFIG_CMD_EFIDEBUG=y
++CONFIG_CMD_RTC=y
++CONFIG_CMD_TIME=y
++CONFIG_CMD_GETTIME=y
++CONFIG_CMD_TIMER=y
+ CONFIG_CMD_REGULATOR=y
+-CONFIG_CMD_EXT2=y
+-CONFIG_CMD_EXT4=y
+ CONFIG_CMD_EXT4_WRITE=y
+-CONFIG_CMD_FAT=y
+ CONFIG_OF_CONTROL=y
+-CONFIG_DEFAULT_DEVICE_TREE="imx8mq-evk-voipac"
++CONFIG_ENV_OVERWRITE=y
+ CONFIG_ENV_IS_IN_MMC=y
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+-CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
++CONFIG_SYS_MMC_ENV_DEV=1
++CONFIG_USE_ETHPRIME=y
++CONFIG_ETHPRIME="FEC"
++CONFIG_NET_RANDOM_ETHADDR=y
+ CONFIG_SAVED_DRAM_TIMING_BASE=0x40000000
++CONFIG_DFU_TFTP=y
++CONFIG_DFU_MMC=y
++CONFIG_DFU_RAM=y
+ CONFIG_USB_FUNCTION_FASTBOOT=y
++CONFIG_UDP_FUNCTION_FASTBOOT=y
+ CONFIG_FASTBOOT_BUF_ADDR=0x42800000
+ CONFIG_FASTBOOT_BUF_SIZE=0x40000000
+ CONFIG_FASTBOOT_FLASH=y
+ CONFIG_MXC_GPIO=y
+ CONFIG_DM_I2C=y
+-CONFIG_SYS_I2C_MXC=y
+-CONFIG_DM_MMC=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SUPPORT_EMMC_RPMB=y
+ CONFIG_SUPPORT_EMMC_BOOT=y
+ CONFIG_MMC_IO_VOLTAGE=y
+ CONFIG_MMC_UHS_SUPPORT=y
+ CONFIG_MMC_HS400_SUPPORT=y
+ CONFIG_FSL_USDHC=y
++CONFIG_MTD=y
+ CONFIG_DM_SPI_FLASH=y
+-CONFIG_SF_DEFAULT_MODE=0
+-CONFIG_SF_DEFAULT_SPEED=40000000
+ CONFIG_SPI_FLASH_STMICRO=y
++CONFIG_SPI_FLASH_WINBOND=y
+ CONFIG_PHYLIB=y
+ CONFIG_PHY_ATHEROS=y
+-CONFIG_DM_ETH=y
++CONFIG_PHY_REALTEK=y
+ CONFIG_PHY_GIGE=y
+ CONFIG_FEC_MXC=y
+ CONFIG_MII=y
++CONFIG_PHY=y
++CONFIG_PHY_IMX8MQ_USB=y
+ CONFIG_PINCTRL=y
+ CONFIG_PINCTRL_IMX8M=y
++CONFIG_SPL_POWER_LEGACY=y
+ CONFIG_POWER_DOMAIN=y
+ CONFIG_IMX8M_POWER_DOMAIN=y
++CONFIG_POWER_BD71837=y
+ CONFIG_DM_REGULATOR=y
+ CONFIG_DM_REGULATOR_FIXED=y
+ CONFIG_DM_REGULATOR_GPIO=y
++CONFIG_SPL_POWER_I2C=y
++CONFIG_DM_RTC=y
++CONFIG_RTC_EMULATION=y
++CONFIG_DM_SERIAL=y
+ CONFIG_MXC_UART=y
+ CONFIG_SPI=y
+ CONFIG_DM_SPI=y
+ CONFIG_FSL_QSPI=y
+ CONFIG_SYSRESET=y
+ CONFIG_SYSRESET_PSCI=y
++CONFIG_TEE=y
++CONFIG_OPTEE=y
+ CONFIG_DM_THERMAL=y
+-CONFIG_NXP_TMU=y
++CONFIG_IMX_TMU=y
+ CONFIG_USB=y
+-CONFIG_DM_USB=y
+ CONFIG_USB_XHCI_HCD=y
+ CONFIG_USB_XHCI_DWC3=y
+ CONFIG_USB_DWC3=y
+ CONFIG_USB_GADGET=y
++CONFIG_SPL_USB_GADGET=y
+ CONFIG_USB_GADGET_MANUFACTURER="FSL"
+-CONFIG_USB_GADGET_VENDOR_NUM=0x0525
+-CONFIG_USB_GADGET_PRODUCT_NUM=0xa4a5
++CONFIG_USB_GADGET_VENDOR_NUM=0x1fc9
++CONFIG_USB_GADGET_PRODUCT_NUM=0x0152
+ CONFIG_SDP_LOADADDR=0x40400000
+-CONFIG_DM_VIDEO=y
++CONFIG_SPL_USB_SDP_SUPPORT=y
++CONFIG_VIDEO=y
++CONFIG_VIDEO_LOGO=y
+ CONFIG_SYS_WHITE_ON_BLACK=y
+ CONFIG_VIDEO_IMX8M_DCSS=y
+ CONFIG_VIDEO_IMX8M_HDMI=y
+-CONFIG_OF_LIBFDT_OVERLAY=y
++CONFIG_SPLASH_SCREEN=y
++CONFIG_SPLASH_SCREEN_ALIGN=y
++CONFIG_BMP_16BPP=y
++CONFIG_BMP_24BPP=y
++CONFIG_BMP_32BPP=y
++CONFIG_SPL_RSA=y
++CONFIG_SHA384=y
++CONFIG_LZO=y
++CONFIG_BZIP2=y
++CONFIG_EFI_MM_COMM_TEE=y
++CONFIG_EFI_VAR_BUF_SIZE=139264
++CONFIG_EFI_SET_TIME=y
++CONFIG_EFI_RUNTIME_UPDATE_CAPSULE=y
++CONFIG_EFI_CAPSULE_ON_DISK=y
++CONFIG_EFI_IGNORE_OSINDICATIONS=y
++CONFIG_EFI_CAPSULE_FIRMWARE_RAW=y
++CONFIG_EFI_CAPSULE_AUTHENTICATE=y
++CONFIG_EFI_CAPSULE_ESL_FILE="CRT.esl"
++CONFIG_EFI_SECURE_BOOT=y
+diff --git a/include/configs/imx8mq_evk_voipac.h b/include/configs/imx8mq_evk_voipac.h
+index 9b9c266ac83..562d56ee67a 100644
+--- a/include/configs/imx8mq_evk_voipac.h
++++ b/include/configs/imx8mq_evk_voipac.h
+@@ -7,55 +7,36 @@
+ #define __IMX8M_EVK_H
+ 
+ #include <linux/sizes.h>
++#include <linux/stringify.h>
+ #include <asm/arch/imx-regs.h>
+ #include "imx_env.h"
+ 
+-#define CONFIG_SPL_MAX_SIZE		(148 * 1024)
+-#define CONFIG_SYS_MONITOR_LEN		(512 * 1024)
+-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR
+-#define CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR	(0x300 + CONFIG_SECONDARY_BOOT_SECTOR_OFFSET)
+-#define CONFIG_SYS_MMCSD_FS_BOOT_PARTITION	1
+-
+ #ifdef CONFIG_SPL_BUILD
+ /*#define CONFIG_ENABLE_DDR_TRAINING_DEBUG*/
+-#define CONFIG_SPL_LDSCRIPT		"arch/arm/cpu/armv8/u-boot-spl.lds"
+-#define CONFIG_SPL_STACK		0x187FF0
+-#define CONFIG_SPL_BSS_START_ADDR      0x00180000
+-#define CONFIG_SPL_BSS_MAX_SIZE        0x2000	/* 8 KB */
+-#define CONFIG_SYS_SPL_MALLOC_START    0x42200000
+-#define CONFIG_SYS_SPL_MALLOC_SIZE    0x80000	/* 512 KB */
+-#define CONFIG_SYS_SPL_PTE_RAM_BASE    0x41580000
+ 
+ /* malloc f used before GD_FLG_FULL_MALLOC_INIT set */
+-#define CONFIG_MALLOC_F_ADDR		0x182000
++#define CFG_MALLOC_F_ADDR		0x182000
+ /* For RAW image gives a error info not panic */
+-#define CONFIG_SPL_ABORT_ON_RAW_IMAGE
+-
+-#undef CONFIG_DM_MMC
+-#undef CONFIG_DM_PMIC
+-#undef CONFIG_DM_PMIC_PFUZE100
+-
+-#define CONFIG_SYS_I2C
+-
+-#define CONFIG_POWER
+-#define CONFIG_POWER_I2C
+-#define CONFIG_POWER_BD71837
+ 
++#define CFG_POWER_PFUZE100_I2C_ADDR 0x08
+ #endif
+ 
+-#define CONFIG_REMAKE_ELF
+-
+ /* ENET Config */
+ /* ENET1 */
+ #if defined(CONFIG_FEC_MXC)
+-#define CONFIG_ETHPRIME                 "FEC"
++#define CFG_FEC_MXC_PHYADDR          0
+ #define PHY_ANEG_TIMEOUT 20000
++#endif
+ 
+-#define CONFIG_FEC_XCV_TYPE             RGMII
+-#define CONFIG_FEC_MXC_PHYADDR          0
+-#define FEC_QUIRK_ENET_MAC
++#ifdef CONFIG_DISTRO_DEFAULTS
++#define BOOT_TARGET_DEVICES(func) \
++	func(USB, usb, 0) \
++	func(MMC, mmc, 1) \
++	func(MMC, mmc, 0)
+ 
+-#define IMX_FEC_BASE			0x30BE0000
++#include <config_distro_bootcmd.h>
++#else
++#define BOOTENV
+ #endif
+ 
+ /*
+@@ -64,56 +45,69 @@
+  */
+ #define JAILHOUSE_ENV \
+ 	"jh_clk= \0 " \
+-	"jh_mmcboot=setenv fdt_file imx8mq-evk-root.dtb; " \
+-		"setenv jh_clk clk_ignore_unused; " \
++	"jh_mmcboot=setenv fdtfile imx8mq-evk-root.dtb; " \
++		"setenv jh_clk kvm.enable_virt_at_load=false clk_ignore_unused mem=1872M; " \
+ 			   "if run loadimage; then " \
+ 				   "run mmcboot; " \
+ 			   "else run jh_netboot; fi; \0" \
+-	"jh_netboot=setenv fdt_file imx8mq-evk-root.dtb; setenv jh_clk clk_ignore_unused; run netboot; \0 "
+-
+-#define CONFIG_MFG_ENV_SETTINGS \
+-	CONFIG_MFG_ENV_SETTINGS_DEFAULT \
++	"jh_netboot=setenv fdtfile imx8mq-evk-root.dtb; setenv jh_clk kvm.enable_virt_at_load=false clk_ignore_unused mem=1872MB; run netboot; \0 "
++
++#define SR_IR_V2_COMMAND \
++	"nodes=/soc@0/caam-sm@100000 /soc@0/bus@30000000/caam_secvio /soc@0/bus@30000000/caam-snvs@30370000 /soc@0/bus@32c00000/hdmi@32c00000 /soc@0/bus@32c00000/display-controller@32e00000 /soc@0/vpu@38300000 /soc@0/vpu_v4l2 /gpu3d@38000000 /audio-codec-bt-sco /audio-codec /sound-bt-sco /sound-wm8524 /sound-spdif /sound-hdmi-arc /binman \0" \
++	"sr_ir_v2_cmd=cp.b ${fdtcontroladdr} ${fdt_addr_r} 0x10000;"\
++	"fdt addr ${fdt_addr_r};"\
++	"fdt set /soc@0/usb@38100000 compatible snps,dwc3;" \
++	"fdt set /soc@0/usb@38200000 compatible snps,dwc3;" \
++	"for i in ${nodes}; do fdt rm ${i}; done \0"
++
++#define CFG_MFG_ENV_SETTINGS \
++	CFG_MFG_ENV_SETTINGS_DEFAULT \
+ 	"initrd_addr=0x43800000\0" \
+ 	"initrd_high=0xffffffffffffffff\0" \
+ 	"emmc_dev=0\0"\
+ 	"sd_dev=1\0" \
+ 
+ /* Initial environment variables */
+-#define CONFIG_EXTRA_ENV_SETTINGS		\
+-	CONFIG_MFG_ENV_SETTINGS \
++#define CFG_EXTRA_ENV_SETTINGS		\
++	CFG_MFG_ENV_SETTINGS \
++	BOOTENV \
++	SR_IR_V2_COMMAND \
+ 	JAILHOUSE_ENV \
+-	"script=boot.scr\0" \
++	"prepare_mcore=setenv mcore_clk clk-imx8mq.mcore_booted;\0" \
++	"scriptaddr=0x43500000\0" \
++	"kernel_addr_r=" __stringify(CONFIG_SYS_LOAD_ADDR) "\0" \
++	"bsp_script=boot.scr\0" \
+ 	"image=Image\0" \
+ 	"splashimage=0x50000000\0" \
+ 	"console=ttymxc0,115200\0" \
++	"fdt_addr_r=0x43000000\0"			\
+ 	"fdt_addr=0x43000000\0"			\
+ 	"fdt_high=0xffffffffffffffff\0"		\
+ 	"boot_fdt=try\0" \
+-	"fdt_file=imx8mq-evk-voipac-hdmi.dtb\0" \
+-	"initrd_addr=0x43800000\0"		\
+-	"initrd_high=0xffffffffffffffff\0" \
++	"fdtfile=imx8mq-evk.dtb\0" \
++	"bootm_size=0x10000000\0" \
+ 	"mmcdev="__stringify(CONFIG_SYS_MMC_ENV_DEV)"\0" \
+-	"mmcpart=" __stringify(CONFIG_SYS_MMC_IMG_LOAD_PART) "\0" \
+-	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
++	"mmcpart=1\0" \
++	"mmcroot=/dev/mmcblk1p2 rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+-	"mmcargs=setenv bootargs ${jh_clk} console=${console} root=${mmcroot}\0 " \
+-	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
++	"mmcargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} root=${mmcroot}\0 " \
++	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${bsp_script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+ 	"loadimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${image}\0" \
+-	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
++	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr_r} ${fdtfile}\0" \
+ 	"mmcboot=echo Booting from mmc ...; " \
+ 		"run mmcargs; " \
+ 		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+ 			"if run loadfdt; then " \
+-				"booti ${loadaddr} - ${fdt_addr}; " \
++				"booti ${loadaddr} - ${fdt_addr_r}; " \
+ 			"else " \
+ 				"echo WARN: Cannot load the DT; " \
+ 			"fi; " \
+ 		"else " \
+ 			"echo wait for boot; " \
+ 		"fi;\0" \
+-	"netargs=setenv bootargs ${jh_clk} console=${console} " \
++	"netargs=setenv bootargs ${jh_clk} ${mcore_clk} console=${console} " \
+ 		"root=/dev/nfs " \
+ 		"ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp\0" \
+ 	"netboot=echo Booting from net ...; " \
+@@ -125,118 +119,42 @@
+ 		"fi; " \
+ 		"${get_cmd} ${loadaddr} ${image}; " \
+ 		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
+-			"if ${get_cmd} ${fdt_addr} ${fdt_file}; then " \
+-				"booti ${loadaddr} - ${fdt_addr}; " \
++			"if ${get_cmd} ${fdt_addr_r} ${fdtfile}; then " \
++				"booti ${loadaddr} - ${fdt_addr_r}; " \
+ 			"else " \
+ 				"echo WARN: Cannot load the DT; " \
+ 			"fi; " \
+ 		"else " \
+ 			"booti; " \
+-		"fi;\0"
+-
+-#define CONFIG_BOOTCOMMAND \
+-	   "mmc dev ${mmcdev}; if mmc rescan; then " \
+-		   "if run loadbootscript; then " \
+-			   "run bootscript; " \
+-		   "else " \
+-			   "if run loadimage; then " \
+-				   "run mmcboot; " \
+-			   "else run netboot; " \
++		"fi;\0" \
++	"bsp_bootcmd=echo Running BSP bootcmd ...; " \
++			"mmc dev ${mmcdev}; if mmc rescan; then " \
++			   "if run loadbootscript; then " \
++				   "run bootscript; " \
++			   "else " \
++				   "if run loadimage; then " \
++					   "run mmcboot; " \
++				   "else run netboot; " \
++				   "fi; " \
+ 			   "fi; " \
+-		   "fi; " \
+-	   "else booti ${loadaddr} - ${fdt_addr}; fi"
++		   "fi;"
+ 
+ /* Link Definitions */
+-#define CONFIG_LOADADDR			0x40480000
+-
+-#define CONFIG_SYS_LOAD_ADDR           CONFIG_LOADADDR
+-
+-#define CONFIG_SYS_INIT_RAM_ADDR        0x40000000
+-#define CONFIG_SYS_INIT_RAM_SIZE        0x80000
+-#define CONFIG_SYS_INIT_SP_OFFSET \
+-	(CONFIG_SYS_INIT_RAM_SIZE - GENERATED_GBL_DATA_SIZE)
+-#define CONFIG_SYS_INIT_SP_ADDR \
+-	(CONFIG_SYS_INIT_RAM_ADDR + CONFIG_SYS_INIT_SP_OFFSET)
+ 
+-#define CONFIG_ENV_OVERWRITE
+-#define CONFIG_SYS_MMC_ENV_DEV		1   /* USDHC2 */
+-#define CONFIG_MMCROOT			"/dev/mmcblk1p2"  /* USDHC2 */
++#define CFG_SYS_INIT_RAM_ADDR        0x40000000
++#define CFG_SYS_INIT_RAM_SIZE        0x80000
+ 
+-/* Size of malloc() pool */
+-#define CONFIG_SYS_MALLOC_LEN		((CONFIG_ENV_SIZE + (2 * 1024)) * 1024)
+ 
+-#define CONFIG_SYS_SDRAM_BASE           0x40000000
++#define CFG_SYS_SDRAM_BASE           0x40000000
+ #define PHYS_SDRAM                      0x40000000
+ #define PHYS_SDRAM_SIZE			0xC0000000 /* 3GB DDR */
++#define PHYS_SDRAM_2			0x100000000
++#define PHYS_SDRAM_2_SIZE		0x40000000 /* 1GB */
+ 
+-#define CONFIG_SYS_MEMTEST_START	PHYS_SDRAM
+-#define CONFIG_SYS_MEMTEST_END		(CONFIG_SYS_MEMTEST_START + \
+-					(PHYS_SDRAM_SIZE >> 1))
+-
+-#define CONFIG_BAUDRATE			115200
+-
+-#define CONFIG_MXC_UART_BASE		UART1_BASE_ADDR
+-
+-/* Monitor Command Prompt */
+-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
+-#define CONFIG_SYS_CBSIZE		1024
+-#define CONFIG_SYS_MAXARGS		64
+-#define CONFIG_SYS_BARGSIZE		CONFIG_SYS_CBSIZE
+-#define CONFIG_SYS_PBSIZE		(CONFIG_SYS_CBSIZE + \
+-					sizeof(CONFIG_SYS_PROMPT) + 16)
+-
+-#define CONFIG_IMX_BOOTAUX
++#define CFG_MXC_UART_BASE		UART_BASE_ADDR(1)
+ 
+-#define CONFIG_SYS_FSL_USDHC_NUM	2
+-#define CONFIG_SYS_FSL_ESDHC_ADDR       0
+-
+-#define CONFIG_SYS_MMC_IMG_LOAD_PART	1
+-
+-#ifdef CONFIG_FSL_QSPI
+-#define FSL_QSPI_FLASH_SIZE		(SZ_32M)
+-#define FSL_QSPI_FLASH_NUM		1
+-#endif
+-
+-/* I2C Configs */
+-#define CONFIG_SYS_I2C_SPEED		  100000
+-
+-/* USB configs */
+-#ifndef CONFIG_SPL_BUILD
+-#define CONFIG_CMD_USB
+-#define CONFIG_USB_STORAGE
+-
+-#define CONFIG_CMD_USB_MASS_STORAGE
+-#define CONFIG_USB_GADGET_MASS_STORAGE
+-#define CONFIG_USB_FUNCTION_MASS_STORAGE
+-
+-#define CONFIG_CMD_READ
+-
+-#endif
+-
+-#define CONFIG_SERIAL_TAG
+-#define CONFIG_FASTBOOT_USB_DEV 0
+-
+-
+-#define CONFIG_USB_MAX_CONTROLLER_COUNT         2
+-
+-#define CONFIG_USBD_HS
+-#define CONFIG_USB_GADGET_VBUS_DRAW 2
+-
+-#ifndef CONFIG_SPL_BUILD
+-#define CONFIG_DM_PMIC
+-#endif
+-
+-#ifdef CONFIG_DM_VIDEO
+-#define CONFIG_VIDEO_LOGO
+-#define CONFIG_SPLASH_SCREEN
+-#define CONFIG_SPLASH_SCREEN_ALIGN
+-#define CONFIG_CMD_BMP
+-#define CONFIG_BMP_16BPP
+-#define CONFIG_BMP_24BPP
+-#define CONFIG_BMP_32BPP
+-#define CONFIG_VIDEO_BMP_RLE8
+-#define CONFIG_VIDEO_BMP_LOGO
+-#endif
++#define CFG_SYS_FSL_USDHC_NUM	2
++#define CFG_SYS_FSL_ESDHC_ADDR       0
+ 
+ #ifdef CONFIG_ANDROID_SUPPORT
+ #include "imx8mq_evk_android.h"
+-- 
+2.34.1
+
