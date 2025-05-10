@@ -21,6 +21,7 @@ IMAGE_INSTALL:append = " i2c-tools \
 			firmware-nxp-wifi-nxpiw416-sdio \
 			libgpiod libgpiod-tools \
             gstreamer1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-bad gstreamer1.0-plugins-good \
+            test-audio-files \
 "
 
 inherit core-image
