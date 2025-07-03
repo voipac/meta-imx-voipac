@@ -22,6 +22,7 @@ IMAGE_INSTALL:append = " i2c-tools \
 			libgpiod libgpiod-tools \
             gstreamer1.0 gstreamer1.0-plugins-base gstreamer1.0-plugins-bad gstreamer1.0-plugins-good \
             test-audio-files \
+            weston weston-init weston-xwayland v4l-utils \
 "
 
 inherit core-image
