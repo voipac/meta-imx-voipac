@@ -32,16 +32,26 @@ SRC_URI:append = " \
 "
 
 SRC_URI:append:imx8mq-voipac = " \
-	file://audio.cfg
-	file://bluetooth.cfg
-	file://can.cfg
-	file://koe_touch.cfg
-	file://nh_lcd.cfg
-	file://nh_touch.cfg
-	file://rtc.cfg
-	file://usbc.cfg
-	file://wifi.cfg
+	file://1001-Added-custom-voipac-devicetree.patch \
+	file://1002-Input-touchscreen-Driver-for-SiS-95xx-controller.patch \
+	file://1003-Input-touchscreen-Driver-for-SiS-95xx-controller.patch \
+	file://1004-Input-touchscreen-SiS95xx-driver-Bug-fix-touch.patch \
+	file://1005-Input-touchscreen-Select-FW_LOADER-config.patch \
+	file://1006-Input-touchscreen-SiS95xx-driver-removed-recalib-add.patch \
+	file://1007-Input-touchscreen-SiS95xx-drv-change-in-update_fw-an.patch \
+	file://1008-Input-touchscreen-SiS95xx-driver-added-fwmode.patch \
+	file://1009-Input-touchscreen-SiS95xx-driver-added-diffdata.patch \
+	file://1010-sis_i2c_95xx_ts-Drop-using-of-reset-pin.patch \
+	file://1011-ov5640_mipi_v2-When-regulator-fails-to-be-probed-ret.patch \
+	file://1012-extcon-ptn5150-Don-t-request-vbus-gpio.patch \
+	file://audio.cfg \
+	file://bluetooth.cfg \
+	file://can.cfg \
+	file://nh_lcd.cfg \
+	file://rtc.cfg \
+	file://usbc.cfg \
+	file://wifi.cfg \
 "
 
 DELTA_KERNEL_DEFCONFIG = "voipac.cfg"
-DELTA_KERNEL_DEFCONFIG:imx8mq-voipac = "audio.cfg  bluetooth.cfg  can.cfg  koe_touch.cfg  nh_lcd.cfg  nh_touch.cfg  rtc.cfg  usbc.cfg  wifi.cfg"
+DELTA_KERNEL_DEFCONFIG:imx8mq-voipac = "audio.cfg  bluetooth.cfg  can.cfg  nh_lcd.cfg  rtc.cfg  usbc.cfg  wifi.cfg"

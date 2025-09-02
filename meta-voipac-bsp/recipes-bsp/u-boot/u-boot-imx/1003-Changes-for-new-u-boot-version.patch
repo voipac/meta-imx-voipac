@@ -1,11 +1,10 @@
-From 64bbc05720bc455a7f25ddb8d844ec479fcbbe44 Mon Sep 17 00:00:00 2001
+From 85dabb917b652c2f49211828621d7cdf1f6b0e02 Mon Sep 17 00:00:00 2001
 From: Marek Belisko <marek.belisko@open-nandra.com>
 Date: Fri, 28 Mar 2025 09:24:40 +0100
 Subject: [PATCH] Changes for new u-boot-version
 
 Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
 ---
- board/voipac/common                         |   1 +
  board/voipac/imx8mq_evk/Kconfig             |   4 +-
  board/voipac/imx8mq_evk/Makefile            |   1 -
  board/voipac/imx8mq_evk/imx8mq_evk_voipac.c |  66 ++++--
@@ -13,18 +12,9 @@ Signed-off-by: Marek Belisko <marek.belisko@open-nandra.com>
  board/voipac/imx8mq_evk/spl.c               | 128 +++++++++---
  configs/imx8mq_evk_voipac_defconfig         | 149 ++++++++++----
  include/configs/imx8mq_evk_voipac.h         | 214 ++++++--------------
- 8 files changed, 324 insertions(+), 288 deletions(-)
- create mode 120000 board/voipac/common
+ 7 files changed, 323 insertions(+), 288 deletions(-)
  delete mode 100644 board/voipac/imx8mq_evk/mmc.c
 
-diff --git a/board/voipac/common b/board/voipac/common
-new file mode 120000
-index 00000000000..fcec88c4b80
---- /dev/null
-+++ b/board/voipac/common
-@@ -0,0 +1 @@
-+/home/marek/data/projects/voipac/imx8/github.com.nxp-imx.uboot-imx/board/freescale/common
-\ No newline at end of file
 diff --git a/board/voipac/imx8mq_evk/Kconfig b/board/voipac/imx8mq_evk/Kconfig
 index 6a47fd38a81..ec6a42f6053 100644
 --- a/board/voipac/imx8mq_evk/Kconfig

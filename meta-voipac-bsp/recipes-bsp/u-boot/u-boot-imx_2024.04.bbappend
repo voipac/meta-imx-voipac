@@ -11,7 +11,7 @@ SRC_URI:append = " \
 "	
 
 # dram size selection (default u-boot config is 512M)
-SRC_URI:append = " \
+SRC_URI:append:mx9-generic-bsp = " \
 	${@bb.utils.contains('DRAM_SIZE', '1G', 'file://dram_1g.cfg','',d)} \
 	${@bb.utils.contains('DRAM_SIZE', '2G', 'file://dram_2g.cfg','',d)} \
 "
