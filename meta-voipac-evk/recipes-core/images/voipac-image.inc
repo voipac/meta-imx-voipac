@@ -1,6 +1,8 @@
 LICENSE = "CLOSED"
 IMAGE_FEATURES += " ssh-server-dropbear debug-tweaks"
 
+inherit secure-boot-image
+
 IMAGE_INSTALL:append = " i2c-tools \
             alsa-utils alsa-tools alsa-lib alsa-plugins \
             canutils \
