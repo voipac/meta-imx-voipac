@@ -28,6 +28,7 @@ SRC_URI:append = " \
 	file://0025-Added-robot-board-pwm-handling.patch \
 	file://0026-Restructure-dts-to-common-parts-and-machine-specific.patch \
 	file://0027-Added-support-for-imx91-board.patch \
+	file://0028-net-phy-Fix-LED-handling-on-imx9x-boards.patch \
 	file://1001-Added-fixes-for-camera.patch \
 	file://voipac.cfg \
 "

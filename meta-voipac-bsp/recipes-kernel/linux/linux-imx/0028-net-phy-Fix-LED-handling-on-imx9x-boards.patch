@@ -1,0 +1,66 @@
+From 6690285f4f7e41c4c20e41b4e29998242ccc034b Mon Sep 17 00:00:00 2001
+From: Marek Belisko <marek.belisko@gmail.com>
+Date: Fri, 5 Jun 2026 09:57:19 +0200
+Subject: [PATCH] net:phy: Fix LED handling on imx9x boards
+
+We use special handling LED0 is for activity and LED1
+and LED2 are used (using OR) as link. Update that accordingly.
+
+Signed-off-by: Marek Belisko <marek.belisko@gmail.com>
+---
+ drivers/net/phy/realtek.c | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/drivers/net/phy/realtek.c b/drivers/net/phy/realtek.c
+index 79f2cecf8e2a..ad0384cdfa20 100644
+--- a/drivers/net/phy/realtek.c
++++ b/drivers/net/phy/realtek.c
+@@ -85,6 +85,8 @@ struct rtl821x_priv {
+ 	struct clk *clk;
+ };
+ 
++static void rtlgen_voipac_custom_leds(struct phy_device *phydev);
++
+ static int rtl821x_read_page(struct phy_device *phydev)
+ {
+ 	return __phy_read(phydev, RTL821x_PAGE_SELECT);
+@@ -141,6 +143,8 @@ static int rtl821x_probe(struct phy_device *phydev)
+ 
+ 	phydev->priv = priv;
+ 
++	rtlgen_voipac_custom_leds(phydev);
++
+ 	return 0;
+ }
+ 
+@@ -752,6 +756,27 @@ static bool rtlgen_supports_2_5gbps(struct phy_device *phydev)
+ 	return val >= 0 && val & RTL_SUPPORTS_2500FULL;
+ }
+ 
++
++/*
++ * We use LED0 as activity (RX/TX)
++ * LED 1 100Mbit link
++ * LED 2 1Gbit link
++ *
++ * update registers accordingly
++ *
++ */
++static void rtlgen_voipac_custom_leds(struct phy_device *phydev)
++{
++	int val;
++
++	phy_write(phydev, RTL821x_PAGE_SELECT, 0x0d04);
++	val = phy_read(phydev, 0x10);
++	phy_write(phydev, 0x10, 0x2d7b);
++
++	phy_write(phydev, RTL821x_PAGE_SELECT, 0);
++}
++
++
+ static int rtlgen_match_phy_device(struct phy_device *phydev)
+ {
+ 	return phydev->phy_id == RTL_GENERIC_PHYID &&
+-- 
+2.25.1
+
